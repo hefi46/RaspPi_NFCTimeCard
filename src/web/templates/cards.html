@@ -1,0 +1,215 @@
+{% extends "base.html" %}
+{% block title %}Cards{% endblock %}
+{% block content %}
+
+<h2>Card Management</h2>
+
+<div class="panel" style="margin-bottom:1rem">
+  <div class="panel-header">
+    <h2>Register a new card</h2>
+  </div>
+  <div class="panel-body">
+    <p class="muted" style="margin-bottom:.75rem">Place the card on the Pi reader, then click the button below. The UID will be captured automatically.</p>
+    <button class="btn btn-primary" id="capture-btn">Tap card to capture UID</button>
+    <div id="capture-status" class="capture-status hidden"></div>
+    <form id="register-form" class="hidden" style="margin-top:1rem">
+      <div class="form-group">
+        <label>Captured UID</label>
+        <input type="text" id="captured-uid" name="uid" readonly>
+      </div>
+      <div class="form-group">
+        <label>Label (optional)</label>
+        <input type="text" id="reg-label" name="label" placeholder="e.g. Alice's keyfob">
+      </div>
+      <div class="form-group">
+        <label>Assign to user (optional)</label>
+        <select id="reg-user" name="user_id">
+          <option value="">— Unassigned —</option>
+          {% for u in users %}
+          <option value="{{ u.id }}">{{ u.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <p id="reg-error" class="error hidden"></p>
+      <div style="display:flex;gap:.5rem">
+        <button type="submit" class="btn btn-primary">Save card</button>
+        <button type="button" class="btn btn-ghost" id="reg-cancel">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel-header"><h2>Registered cards</h2></div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>UID</th>
+          <th>Label</th>
+          <th>Assigned to</th>
+          <th>Assigned date</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="cards-tbody">
+        {% for card in cards %}
+        <tr id="card-row-{{ card.id }}">
+          <td><code>{{ card.uid }}</code></td>
+          <td>{{ card.label or '—' }}</td>
+          <td>{{ card.user_name or '<span class="muted">Unassigned</span>' }}</td>
+          <td class="muted">{{ card.assigned_at or '—' }}</td>
+          <td class="actions">
+            <button class="btn btn-ghost btn-sm" onclick="editCard({{ card.id }}, '{{ card.label or '' }}', {{ card.user_id or 'null' }})">Edit</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteCard({{ card.id }})">Delete</button>
+          </td>
+        </tr>
+        {% else %}
+        <tr id="no-cards-row"><td colspan="5" class="muted" style="text-align:center;padding:1.5rem">No cards registered yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Edit card modal -->
+<div class="modal-backdrop hidden" id="edit-modal">
+  <div class="modal">
+    <h3>Edit card</h3>
+    <input type="hidden" id="edit-card-id">
+    <div class="form-group">
+      <label>Label</label>
+      <input type="text" id="edit-label" placeholder="e.g. Alice's keyfob">
+    </div>
+    <div class="form-group">
+      <label>Assigned user</label>
+      <select id="edit-user">
+        <option value="">— Unassigned —</option>
+        {% for u in users %}
+        <option value="{{ u.id }}">{{ u.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <p id="edit-error" class="error hidden"></p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('edit-modal')">Cancel</button>
+      <button class="btn btn-primary" id="edit-save-btn">Save</button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+const users = {{ users | tojson }};
+
+// ── Tap-to-register ────────────────────────────────────────────────────
+document.getElementById('capture-btn').addEventListener('click', async () => {
+  const btn    = document.getElementById('capture-btn');
+  const status = document.getElementById('capture-status');
+  btn.disabled = true;
+  status.className = 'capture-status waiting';
+  status.textContent = '⏳ Waiting for card tap… (30 s)';
+  status.classList.remove('hidden');
+
+  try {
+    const res = await fetch('/api/cards/capture', { method: 'POST' });
+    const data = await res.json();
+    if (res.ok) {
+      status.className = 'capture-status captured';
+      status.textContent = '✓ Card detected: ' + data.uid;
+      document.getElementById('captured-uid').value = data.uid;
+      document.getElementById('register-form').classList.remove('hidden');
+    } else {
+      status.className = 'capture-status error';
+      status.textContent = '✗ ' + (data.error || 'Failed to capture card');
+    }
+  } catch {
+    status.className = 'capture-status error';
+    status.textContent = '✗ Network error';
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+document.getElementById('reg-cancel').addEventListener('click', () => {
+  document.getElementById('register-form').classList.add('hidden');
+  document.getElementById('capture-status').classList.add('hidden');
+  document.getElementById('captured-uid').value = '';
+});
+
+document.getElementById('register-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const err = document.getElementById('reg-error');
+  err.classList.add('hidden');
+  const uid    = document.getElementById('captured-uid').value;
+  const label  = document.getElementById('reg-label').value.trim() || null;
+  const userId = document.getElementById('reg-user').value || null;
+
+  const res = await fetch('/api/cards', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ uid, label }),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    err.textContent = data.error || 'Failed to register card';
+    err.classList.remove('hidden');
+    return;
+  }
+  if (userId) {
+    await fetch(`/api/cards/${data.id}`, {
+      method: 'PATCH',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ user_id: parseInt(userId), label }),
+    });
+  }
+  window.location.reload();
+});
+
+// ── Edit card ──────────────────────────────────────────────────────────
+function editCard(id, label, userId) {
+  document.getElementById('edit-card-id').value = id;
+  document.getElementById('edit-label').value = label;
+  document.getElementById('edit-user').value = userId || '';
+  document.getElementById('edit-error').classList.add('hidden');
+  document.getElementById('edit-modal').classList.remove('hidden');
+}
+
+document.getElementById('edit-save-btn').addEventListener('click', async () => {
+  const id     = document.getElementById('edit-card-id').value;
+  const label  = document.getElementById('edit-label').value.trim() || null;
+  const userId = document.getElementById('edit-user').value || null;
+  const err    = document.getElementById('edit-error');
+  err.classList.add('hidden');
+
+  const res = await fetch(`/api/cards/${id}`, {
+    method: 'PATCH',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ user_id: userId ? parseInt(userId) : null, label }),
+  });
+  if (res.ok) { window.location.reload(); }
+  else {
+    const data = await res.json();
+    err.textContent = data.error || 'Save failed';
+    err.classList.remove('hidden');
+  }
+});
+
+// ── Delete card ────────────────────────────────────────────────────────
+async function deleteCard(id) {
+  if (!confirm('Delete this card? All its log entries will lose the card reference.')) return;
+  const res = await fetch(`/api/cards/${id}`, { method: 'DELETE' });
+  if (res.ok) { document.getElementById(`card-row-${id}`)?.remove(); }
+  else { alert('Delete failed'); }
+}
+
+// ── Close modal ────────────────────────────────────────────────────────
+function closeModal(id) {
+  document.getElementById(id).classList.add('hidden');
+}
+document.getElementById('edit-modal').addEventListener('click', e => {
+  if (e.target === e.currentTarget) closeModal('edit-modal');
+});
+</script>
+{% endblock %}

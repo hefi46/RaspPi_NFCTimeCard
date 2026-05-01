@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Login — NFC TimeCard</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="login-body">
+  <div class="login-card">
+    <h1>NFC TimeCard</h1>
+    <p id="login-error" class="error hidden"></p>
+    <form id="login-form">
+      <label for="email">Email</label>
+      <input id="email" type="email" name="email" required autofocus>
+      <label for="password">Password</label>
+      <input id="password" type="password" name="password" required>
+      <button type="submit">Sign in</button>
+    </form>
+  </div>
+  <script>
+    document.getElementById('login-form').addEventListener('submit', async e => {
+      e.preventDefault();
+      const err = document.getElementById('login-error');
+      err.classList.add('hidden');
+      const res = await fetch('/auth/login', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          email: document.getElementById('email').value,
+          password: document.getElementById('password').value,
+        }),
+      });
+      if (res.ok) {
+        window.location.href = '/';
+      } else {
+        const data = await res.json();
+        err.textContent = data.error || 'Login failed';
+        err.classList.remove('hidden');
+      }
+    });
+  </script>
+</body>
+</html>

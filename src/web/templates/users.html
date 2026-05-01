@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+{% block title %}Users{% endblock %}
+{% block content %}
+
+<h2>User Management</h2>
+
+<div style="margin-bottom:1rem">
+  <button class="btn btn-primary" onclick="openAddModal()">+ Add user</button>
+</div>
+
+<div class="panel">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Role</th>
+          <th>Created</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in users %}
+        <tr id="user-row-{{ u.id }}">
+          <td>{{ u.name }}</td>
+          <td>{{ u.email }}</td>
+          <td>
+            <span class="badge {% if u.role == 'admin' %}badge-admin{% endif %}">{{ u.role }}</span>
+          </td>
+          <td class="muted">{{ u.created_at }}</td>
+          <td class="actions">
+            <button class="btn btn-ghost btn-sm"
+              onclick="openEditModal({{ u.id }}, '{{ u.name }}', '{{ u.email }}', '{{ u.role }}')">Edit</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteUser({{ u.id }})">Delete</button>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" class="muted" style="text-align:center;padding:1.5rem">No users yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Add user modal -->
+<div class="modal-backdrop hidden" id="add-modal">
+  <div class="modal">
+    <h3>Add user</h3>
+    <div class="form-group">
+      <label>Name</label>
+      <input type="text" id="add-name" placeholder="Full name">
+    </div>
+    <div class="form-group">
+      <label>Email</label>
+      <input type="email" id="add-email" placeholder="user@example.com">
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" id="add-password" placeholder="Temporary password">
+    </div>
+    <div class="form-group">
+      <label>Role</label>
+      <select id="add-role">
+        <option value="user">User</option>
+        <option value="admin">Admin</option>
+      </select>
+    </div>
+    <p id="add-error" class="error hidden"></p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('add-modal')">Cancel</button>
+      <button class="btn btn-primary" id="add-save-btn">Create</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit user modal -->
+<div class="modal-backdrop hidden" id="edit-modal">
+  <div class="modal">
+    <h3>Edit user</h3>
+    <input type="hidden" id="edit-id">
+    <div class="form-group">
+      <label>Name</label>
+      <input type="text" id="edit-name">
+    </div>
+    <div class="form-group">
+      <label>Email</label>
+      <input type="email" id="edit-email">
+    </div>
+    <div class="form-group">
+      <label>New password <span class="muted">(leave blank to keep current)</span></label>
+      <input type="password" id="edit-password" placeholder="New password">
+    </div>
+    <div class="form-group">
+      <label>Role</label>
+      <select id="edit-role">
+        <option value="user">User</option>
+        <option value="admin">Admin</option>
+      </select>
+    </div>
+    <p id="edit-error" class="error hidden"></p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('edit-modal')">Cancel</button>
+      <button class="btn btn-primary" id="edit-save-btn">Save</button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+function closeModal(id) {
+  document.getElementById(id).classList.add('hidden');
+}
+['add-modal','edit-modal'].forEach(id => {
+  document.getElementById(id).addEventListener('click', e => {
+    if (e.target === e.currentTarget) closeModal(id);
+  });
+});
+
+// ── Add user ───────────────────────────────────────────────────────────
+function openAddModal() {
+  ['add-name','add-email','add-password'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('add-role').value = 'user';
+  document.getElementById('add-error').classList.add('hidden');
+  document.getElementById('add-modal').classList.remove('hidden');
+  document.getElementById('add-name').focus();
+}
+
+document.getElementById('add-save-btn').addEventListener('click', async () => {
+  const err = document.getElementById('add-error');
+  err.classList.add('hidden');
+  const body = {
+    name:     document.getElementById('add-name').value.trim(),
+    email:    document.getElementById('add-email').value.trim(),
+    password: document.getElementById('add-password').value,
+    role:     document.getElementById('add-role').value,
+  };
+  if (!body.name || !body.email || !body.password) {
+    err.textContent = 'Name, email and password are required';
+    err.classList.remove('hidden');
+    return;
+  }
+  const res = await fetch('/api/users', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(body),
+  });
+  if (res.ok) { window.location.reload(); }
+  else {
+    const data = await res.json();
+    err.textContent = data.error || 'Failed to create user';
+    err.classList.remove('hidden');
+  }
+});
+
+// ── Edit user ──────────────────────────────────────────────────────────
+function openEditModal(id, name, email, role) {
+  document.getElementById('edit-id').value    = id;
+  document.getElementById('edit-name').value  = name;
+  document.getElementById('edit-email').value = email;
+  document.getElementById('edit-role').value  = role;
+  document.getElementById('edit-password').value = '';
+  document.getElementById('edit-error').classList.add('hidden');
+  document.getElementById('edit-modal').classList.remove('hidden');
+  document.getElementById('edit-name').focus();
+}
+
+document.getElementById('edit-save-btn').addEventListener('click', async () => {
+  const id  = document.getElementById('edit-id').value;
+  const err = document.getElementById('edit-error');
+  err.classList.add('hidden');
+  const body = {
+    name:  document.getElementById('edit-name').value.trim(),
+    email: document.getElementById('edit-email').value.trim(),
+    role:  document.getElementById('edit-role').value,
+  };
+  const pw = document.getElementById('edit-password').value;
+  if (pw) body.password = pw;
+
+  const res = await fetch(`/api/users/${id}`, {
+    method: 'PATCH', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(body),
+  });
+  if (res.ok) { window.location.reload(); }
+  else {
+    const data = await res.json();
+    err.textContent = data.error || 'Save failed';
+    err.classList.remove('hidden');
+  }
+});
+
+// ── Delete user ────────────────────────────────────────────────────────
+async function deleteUser(id) {
+  if (!confirm('Delete this user? Their card assignments will be cleared.')) return;
+  const res = await fetch(`/api/users/${id}`, { method: 'DELETE' });
+  if (res.ok) { document.getElementById(`user-row-${id}`)?.remove(); }
+  else { alert('Delete failed'); }
+}
+</script>
+{% endblock %}

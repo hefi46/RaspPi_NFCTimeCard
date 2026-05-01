@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}TimeCard{% endblock %} — NFC TimeCard</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+<div class="app-layout">
+
+  <header class="topbar">
+    <h1>NFC TimeCard</h1>
+    <span class="nav-user">{{ user.name }}</span>
+    <button class="btn-logout" id="logout-btn">Sign out</button>
+  </header>
+
+  <nav class="sidebar">
+    <a href="{{ url_for('views.dashboard') }}" class="{% if request.endpoint == 'views.dashboard' %}active{% endif %}">
+      <span class="nav-icon">⊞</span> Dashboard
+    </a>
+    <a href="{{ url_for('views.logs_page') }}" class="{% if request.endpoint == 'views.logs_page' %}active{% endif %}">
+      <span class="nav-icon">☰</span> Time Logs
+    </a>
+    <a href="{{ url_for('views.cards_page') }}" class="{% if request.endpoint == 'views.cards_page' %}active{% endif %}">
+      <span class="nav-icon">⬛</span> Cards
+    </a>
+    <a href="{{ url_for('views.users_page') }}" class="{% if request.endpoint == 'views.users_page' %}active{% endif %}">
+      <span class="nav-icon">👤</span> Users
+    </a>
+  </nav>
+
+  <main class="main">
+    {% block content %}{% endblock %}
+  </main>
+
+</div>
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

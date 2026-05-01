@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}Time Logs{% endblock %}
+{% block content %}
+
+<h2>Time Logs</h2>
+
+<form class="filter-bar" method="get" action="{{ url_for('views.logs_page') }}">
+  <div>
+    <label>Employee</label>
+    <select name="user_id">
+      <option value="">All</option>
+      {% for u in users %}
+      <option value="{{ u.id }}" {% if filters.user_id == u.id %}selected{% endif %}>{{ u.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div>
+    <label>From</label>
+    <input type="date" name="from" value="{{ filters.from or '' }}">
+  </div>
+  <div>
+    <label>To</label>
+    <input type="date" name="to" value="{{ filters.to or '' }}">
+  </div>
+  <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+  <a href="{{ url_for('views.logs_page') }}" class="btn btn-ghost btn-sm">Clear</a>
+  <a href="{{ url_for('api.export_logs_csv', **request.args) }}" class="btn btn-export btn-sm">⬇ Export CSV</a>
+</form>
+
+<div class="panel">
+  <div class="panel-header">
+    <h2>Results</h2>
+    <span class="muted" style="font-size:.8rem">{{ total }} record{{ 's' if total != 1 }}</span>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Timestamp</th>
+          <th>Name</th>
+          <th>Action</th>
+          <th>Card</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for log in logs %}
+        <tr>
+          <td class="muted">{{ log.timestamp }}</td>
+          <td>{{ log.user_name or '—' }}</td>
+          <td>
+            <span class="badge {% if log.action == 'check_in' %}badge-in{% else %}badge-out{% endif %}">
+              {{ 'Check in' if log.action == 'check_in' else 'Check out' }}
+            </span>
+          </td>
+          <td class="muted">{{ log.card_label or log.card_uid }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4" class="muted" style="text-align:center;padding:1.5rem">No records match the current filter.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% if pages > 1 %}
+<div class="pagination">
+  {% if page > 1 %}
+    <a href="?page={{ page - 1 }}&user_id={{ filters.user_id or '' }}&from={{ filters.from or '' }}&to={{ filters.to or '' }}">‹ Prev</a>
+  {% endif %}
+  <span>Page <span class="current">{{ page }}</span> of {{ pages }}</span>
+  {% if page < pages %}
+    <a href="?page={{ page + 1 }}&user_id={{ filters.user_id or '' }}&from={{ filters.from or '' }}&to={{ filters.to or '' }}">Next ›</a>
+  {% endif %}
+</div>
+{% endif %}
+
+{% endblock %}

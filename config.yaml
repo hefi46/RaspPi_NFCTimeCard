@@ -1,0 +1,20 @@
+database:
+  path: /var/lib/timecard/timecard.db
+
+server:
+  host: 0.0.0.0
+  port: 5000
+  secret_key: CHANGE_ME   # replace with a long random string before deploying
+
+hardware:
+  mock: false             # set true on a dev machine without physical hardware
+  nfc:
+    interface: spi        # spi | i2c | uart
+    reset_pin: 20
+    req_pin: 16
+  oled:
+    i2c_address: 0x3C
+    width: 128
+    height: 64
+  buzzer:
+    gpio_pin: 18

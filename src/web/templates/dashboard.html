@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+
+<h2>Dashboard</h2>
+
+<div class="stat-grid">
+  <div class="stat-card">
+    <div class="stat-value">{{ checked_in }}</div>
+    <div class="stat-label">Currently checked in</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-value">{{ total_logs }}</div>
+    <div class="stat-label">Total log entries</div>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel-header">
+    <h2>Recent Activity</h2>
+    <a href="{{ url_for('views.logs_page') }}" class="btn btn-ghost btn-sm">View all</a>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Time</th>
+          <th>Name</th>
+          <th>Action</th>
+          <th>Card</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for log in logs %}
+        <tr>
+          <td class="muted">{{ log.timestamp }}</td>
+          <td>{{ log.user_name or '—' }}</td>
+          <td>
+            <span class="badge {% if log.action == 'check_in' %}badge-in{% else %}badge-out{% endif %}">
+              {{ 'Check in' if log.action == 'check_in' else 'Check out' }}
+            </span>
+          </td>
+          <td class="muted">{{ log.card_label or log.card_uid }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4" class="muted" style="text-align:center;padding:1.5rem">No activity yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}
