@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<h2>Dashboard</h2>
+<p>Recent activity — full UI coming in Phase 5.</p>
+<ul>
+{% for log in logs %}
+  <li>{{ log.timestamp }} — {{ log.user_name }} — {{ log.action }}</li>
+{% endfor %}
+</ul>
+{% endblock %}

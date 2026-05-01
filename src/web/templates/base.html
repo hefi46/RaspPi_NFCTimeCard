@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}TimeCard{% endblock %} — NFC TimeCard</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  {% if user is defined and user %}
+  <nav>
+    <a href="{{ url_for('views.dashboard') }}">Dashboard</a>
+    <a href="{{ url_for('views.logs_page') }}">Logs</a>
+    <a href="{{ url_for('views.cards_page') }}">Cards</a>
+    <a href="{{ url_for('views.users_page') }}">Users</a>
+    <span class="nav-user">{{ user.name }}</span>
+    <button id="logout-btn">Logout</button>
+  </nav>
+  {% endif %}
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
