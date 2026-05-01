@@ -15,7 +15,6 @@ console registers new cards directly from the Pi reader.
 
 import logging
 import threading
-from datetime import datetime
 from typing import Callable, Optional
 
 from src import database as db
@@ -116,10 +115,9 @@ class CardHandler:
 
         log_id = db.insert_log(self._conn, card["id"], user_id, action)
 
-        now = datetime.now().strftime("%H:%M")
-        line2 = f"{action.replace('_', ' ').title()}  {now}"
-        self._display.show(user["name"], line2, duration=3.0)
+        # Buzz immediately for tactile feedback, then show the confirmation screen
         self._display.buzz(action)
+        self._display.show_scan_result(user["name"], action)
 
         logger.info("%s → %s (log_id=%d)", user["name"], action, log_id)
         return {"action": action, "user": dict(user), "card": dict(card), "log_id": log_id}

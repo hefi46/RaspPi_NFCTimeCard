@@ -67,11 +67,11 @@ def test_log_written_to_db(conn, handler, seeded):
 def test_display_called_on_success(conn, seeded, display, monkeypatch):
     _, card = seeded
     calls = []
-    monkeypatch.setattr(display, "show", lambda *a, **kw: calls.append(a))
+    monkeypatch.setattr(display, "show_scan_result", lambda name, action: calls.append((name, action)))
     h = CardHandler(conn, display)
     h.handle_scan(card["uid"])
     assert len(calls) == 1
-    assert "Alice" in calls[0][0]
+    assert calls[0] == ("Alice", "check_in")
 
 
 def test_buzz_called_on_success(conn, seeded, display, monkeypatch):
@@ -81,6 +81,17 @@ def test_buzz_called_on_success(conn, seeded, display, monkeypatch):
     h = CardHandler(conn, display)
     h.handle_scan(card["uid"])
     assert buzzed == ["check_in"]
+
+
+def test_buzz_fires_before_display(conn, seeded, display, monkeypatch):
+    """buzz() must be called before show_scan_result() for immediate feedback."""
+    _, card = seeded
+    order = []
+    monkeypatch.setattr(display, "buzz", lambda p: order.append("buzz"))
+    monkeypatch.setattr(display, "show_scan_result", lambda n, a: order.append("show"))
+    h = CardHandler(conn, display)
+    h.handle_scan(card["uid"])
+    assert order == ["buzz", "show"]
 
 
 # ---------------------------------------------------------------------------

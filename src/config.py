@@ -25,10 +25,12 @@ class NFCConfig:
 
 
 @dataclass
-class OLEDConfig:
-    i2c_address: int = 0x3C
-    width: int = 128
-    height: int = 64
+class TFTConfig:
+    cs_pin: int = 8          # SPI CE0 / GPIO8
+    dc_pin: int = 25         # data/command GPIO25
+    rst_pin: int = 24        # reset GPIO24
+    rotation: int = 90       # landscape
+    baudrate: int = 64_000_000
 
 
 @dataclass
@@ -40,7 +42,7 @@ class BuzzerConfig:
 class HardwareConfig:
     mock: bool = False
     nfc: NFCConfig = field(default_factory=NFCConfig)
-    oled: OLEDConfig = field(default_factory=OLEDConfig)
+    tft: TFTConfig = field(default_factory=TFTConfig)
     buzzer: BuzzerConfig = field(default_factory=BuzzerConfig)
 
 
@@ -74,7 +76,7 @@ def load_config(path: str = "config.yaml") -> Config:
         hardware=HardwareConfig(
             mock=hw.get("mock", False),
             nfc=NFCConfig(**_pick(hw.get("nfc", {}), NFCConfig)),
-            oled=OLEDConfig(**_pick(hw.get("oled", {}), OLEDConfig)),
+            tft=TFTConfig(**_pick(hw.get("tft", {}), TFTConfig)),
             buzzer=BuzzerConfig(**_pick(hw.get("buzzer", {}), BuzzerConfig)),
         ),
     )

@@ -12,9 +12,11 @@ hardware:
     interface: spi        # spi | i2c | uart
     reset_pin: 20
     req_pin: 16
-  oled:
-    i2c_address: 0x3C
-    width: 128
-    height: 64
+  tft:                    # 2.8" ILI9341 320×240 colour TFT (SPI)
+    cs_pin: 8             # SPI CE0 / GPIO8
+    dc_pin: 25            # data/command GPIO25
+    rst_pin: 24           # reset GPIO24
+    rotation: 90          # landscape orientation
+    baudrate: 64000000
   buzzer:
     gpio_pin: 18
