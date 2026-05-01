@@ -161,6 +161,23 @@ def delete_card(conn: sqlite3.Connection, card_id: int) -> None:
     conn.commit()
 
 
+def count_checked_in(conn: sqlite3.Connection) -> int:
+    """Return the number of users currently checked in (last action = check_in)."""
+    return conn.execute("""
+        SELECT COUNT(*) FROM (
+            SELECT user_id, action
+            FROM time_logs t1
+            WHERE id = (
+                SELECT id FROM time_logs t2
+                WHERE t2.user_id = t1.user_id
+                ORDER BY timestamp DESC, id DESC
+                LIMIT 1
+            )
+            AND action = 'check_in'
+        )
+    """).fetchone()[0]
+
+
 # ---------------------------------------------------------------------------
 # Time logs
 # ---------------------------------------------------------------------------
