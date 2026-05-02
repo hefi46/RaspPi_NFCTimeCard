@@ -5,9 +5,6 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Dashboard{% endblock %} — ClockIn</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
@@ -19,7 +16,7 @@
   </a>
 {%- endmacro %}
 
-<div class="shell" style="width:100%;height:100vh">
+<div class="shell">
   <aside class="shell-side">
     <div class="shell-brand">
       <div class="shell-brand-mark" aria-hidden>
@@ -69,14 +66,16 @@
       </div>
       <div class="shell-top-right">
         <span class="mono dim" id="topbar-clock"></span>
+        {% if user %}
         <div class="shell-user">
-          <div class="shell-user-avatar">{{ user.name[:2] | upper }}</div>
+          <div class="shell-user-avatar">{{ (user.name or '?')[:2] | upper }}</div>
           <div class="shell-user-meta">
             <div class="shell-user-name">{{ user.name }}</div>
-            <div class="shell-user-role dim">{{ user.role | capitalize }}</div>
+            <div class="shell-user-role dim">{{ (user.role or 'user') | capitalize }}</div>
           </div>
         </div>
         <button class="btn btn-sm" id="logout-btn">Sign out</button>
+        {% endif %}
       </div>
     </header>
     <div class="shell-body">

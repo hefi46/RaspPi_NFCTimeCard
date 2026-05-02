@@ -46,7 +46,7 @@
     <div class="timeline">
       {% for log in logs %}
       <div class="timeline-row">
-        <span class="timeline-time">{{ log.timestamp[-8:] }}</span>
+        <span class="timeline-time">{{ log.timestamp | hhmmss }}</span>
         <div class="timeline-who">
           {{ avatar(log.user_name or '?', seed=log.user_id) }}
           <div>

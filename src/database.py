@@ -52,6 +52,13 @@ def init_db(conn: sqlite3.Connection) -> None:
             user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
             expires_at TEXT    NOT NULL
         );
+
+        CREATE INDEX IF NOT EXISTS idx_time_logs_user_ts
+            ON time_logs(user_id, timestamp DESC, id DESC);
+        CREATE INDEX IF NOT EXISTS idx_time_logs_ts
+            ON time_logs(timestamp);
+        CREATE INDEX IF NOT EXISTS idx_cards_user
+            ON cards(user_id);
     """)
     conn.commit()
 
@@ -273,6 +280,10 @@ def count_unassigned_cards(conn: sqlite3.Connection) -> int:
     return conn.execute(
         "SELECT COUNT(*) FROM cards WHERE user_id IS NULL"
     ).fetchone()[0]
+
+
+def count_cards(conn: sqlite3.Connection) -> int:
+    return conn.execute("SELECT COUNT(*) FROM cards").fetchone()[0]
 
 
 # ---------------------------------------------------------------------------
