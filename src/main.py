@@ -13,8 +13,6 @@ replaced with stdout stubs and a /dev tap-simulator route is mounted.
 
 import logging
 import os
-import signal
-import sys
 import threading
 
 from src.card_handler import CardHandler
@@ -72,27 +70,25 @@ def main() -> None:
         app.config["NFC_READER"] = reader
         logger.info("Dev tap simulator mounted at /dev")
 
-    # ── Graceful shutdown ─────────────────────────────────────────────
-    def _shutdown(sig, frame):
-        logger.info("Shutting down…")
-        reader.stop()
-        display.cleanup()
-        sys.exit(0)
-
-    signal.signal(signal.SIGINT, _shutdown)
-    signal.signal(signal.SIGTERM, _shutdown)
-
     logger.info(
         "Web server starting on http://%s:%d",
         config.server.host, config.server.port,
     )
-    app.run(
-        host=config.server.host,
-        port=config.server.port,
-        debug=False,
-        use_reloader=False,   # reloader forks and breaks the hardware threads
-        threaded=True,
-    )
+
+    # Werkzeug installs its own signal handlers when app.run() starts, so
+    # rely on try/finally for cleanup rather than a custom SIGINT handler.
+    try:
+        app.run(
+            host=config.server.host,
+            port=config.server.port,
+            debug=False,
+            use_reloader=False,   # reloader forks and breaks the hardware threads
+            threaded=True,
+        )
+    finally:
+        logger.info("Shutting down…")
+        reader.stop()
+        display.cleanup()
 
 
 if __name__ == "__main__":

@@ -83,6 +83,44 @@ def test_protected_route_requires_auth(client):
     assert res.status_code == 401
 
 
+def test_rate_limit_after_repeated_failures(client, conn):
+    """11th wrong-password attempt within the window returns 429."""
+    _make_admin(conn)
+    for _ in range(10):
+        res = client.post("/auth/login", json={
+            "email": "admin@test.com", "password": "WRONG"
+        })
+        assert res.status_code == 401
+    res = client.post("/auth/login", json={
+        "email": "admin@test.com", "password": "WRONG"
+    })
+    assert res.status_code == 429
+
+
+def test_rate_limit_resets_on_successful_login(client, conn):
+    """A successful login clears prior failure count."""
+    _make_admin(conn)
+    for _ in range(5):
+        client.post("/auth/login", json={"email": "admin@test.com", "password": "WRONG"})
+    # Successful login wipes failures
+    res = client.post("/auth/login", json={"email": "admin@test.com", "password": "adminpass"})
+    assert res.status_code == 200
+    # Should be able to fail another full window's worth without locking
+    for _ in range(10):
+        res = client.post("/auth/login", json={"email": "admin@test.com", "password": "WRONG"})
+        assert res.status_code == 401
+
+
+def test_login_no_user_enumeration_via_status(client, conn):
+    """No-such-user and wrong-password both return 401, never 404."""
+    _make_admin(conn)
+    res1 = client.post("/auth/login", json={"email": "nobody@test.com", "password": "x"})
+    res2 = client.post("/auth/login", json={"email": "admin@test.com",  "password": "x"})
+    assert res1.status_code == 401
+    assert res2.status_code == 401
+    assert res1.get_json()["error"] == res2.get_json()["error"]
+
+
 # ---------------------------------------------------------------------------
 # Users API
 # ---------------------------------------------------------------------------

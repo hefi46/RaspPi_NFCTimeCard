@@ -2,6 +2,7 @@
 
 import csv
 import io
+import sqlite3
 import threading
 
 import bcrypt
@@ -51,7 +52,7 @@ def create_user():
     pw_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
     try:
         user_id = db.create_user(_conn(), name, email, pw_hash, role)
-    except Exception:
+    except sqlite3.IntegrityError:
         return jsonify({"error": "Email already exists"}), 409
 
     return jsonify({"id": user_id}), 201
@@ -82,7 +83,10 @@ def update_user(user_id):
             data["password"].encode(), bcrypt.gensalt()
         ).decode()
 
-    db.update_user(_conn(), user_id, **fields)
+    try:
+        db.update_user(_conn(), user_id, **fields)
+    except sqlite3.IntegrityError:
+        return jsonify({"error": "Email already exists"}), 409
     return jsonify({"ok": True})
 
 
@@ -122,7 +126,7 @@ def create_card():
 
     try:
         card_id = db.create_card(_conn(), uid, label)
-    except Exception:
+    except sqlite3.IntegrityError:
         return jsonify({"error": "UID already registered"}), 409
 
     return jsonify({"id": card_id}), 201

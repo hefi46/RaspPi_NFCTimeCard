@@ -40,8 +40,8 @@ def init_db(conn: sqlite3.Connection) -> None:
 
         CREATE TABLE IF NOT EXISTS time_logs (
             id        INTEGER PRIMARY KEY AUTOINCREMENT,
-            card_id   INTEGER REFERENCES cards(id),
-            user_id   INTEGER REFERENCES users(id),
+            card_id   INTEGER REFERENCES cards(id) ON DELETE SET NULL,
+            user_id   INTEGER REFERENCES users(id) ON DELETE SET NULL,
             action    TEXT NOT NULL,
             timestamp TEXT NOT NULL DEFAULT (datetime('now'))
         );
@@ -149,15 +149,35 @@ def list_cards(conn: sqlite3.Connection) -> list[dict]:
 
 def assign_card(conn: sqlite3.Connection, card_id: int,
                 user_id: Optional[int], label: Optional[str] = None) -> None:
-    if label is not None:
+    """
+    Update a card's user assignment and/or label.
+
+    `assigned_at` is only touched when `user_id` actually changes:
+      - reassigning  → set to now
+      - unassigning  → set to NULL
+      - label-only   → unchanged (preserves history)
+    """
+    current = get_card_by_id(conn, card_id)
+    if current is None:
+        return
+
+    if current["user_id"] == user_id:
+        # User unchanged — only update the label
+        conn.execute(
+            "UPDATE cards SET label = ? WHERE id = ?",
+            (label, card_id),
+        )
+    elif user_id is None:
+        # Unassign — clear assigned_at
+        conn.execute(
+            "UPDATE cards SET user_id = NULL, label = ?, assigned_at = NULL WHERE id = ?",
+            (label, card_id),
+        )
+    else:
+        # New or different assignment — stamp assigned_at
         conn.execute(
             "UPDATE cards SET user_id = ?, label = ?, assigned_at = datetime('now') WHERE id = ?",
             (user_id, label, card_id),
-        )
-    else:
-        conn.execute(
-            "UPDATE cards SET user_id = ?, assigned_at = datetime('now') WHERE id = ?",
-            (user_id, card_id),
         )
     conn.commit()
 

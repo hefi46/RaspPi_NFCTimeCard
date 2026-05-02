@@ -40,6 +40,8 @@ def logs_page():
     rows, total = db.list_logs(conn, user_id=user_id, from_dt=from_dt,
                                to_dt=to_dt, page=page, per_page=PER_PAGE)
     users = db.list_users(conn)
+    for u in users:
+        u.pop("password", None)
     pages = max(1, (total + PER_PAGE - 1) // PER_PAGE)
     return render_template("logs.html", user=g.current_user, logs=rows,
                            total=total, page=page, pages=pages, users=users,

@@ -106,6 +106,49 @@ def test_assign_card_with_label(conn):
     assert card["label"] == "Jack's Card"
 
 
+def test_relabel_preserves_assigned_at(conn):
+    """Updating the label without changing the user should not bump assigned_at."""
+    uid = create_user(conn, "Jen", "jen@example.com", "h")
+    cid = create_card(conn, "AA:11:BB:22")
+    assign_card(conn, cid, uid, label="original")
+    original_at = get_card_by_id(conn, cid)["assigned_at"]
+
+    # Different label, same user
+    assign_card(conn, cid, uid, label="new label")
+    after = get_card_by_id(conn, cid)
+    assert after["label"] == "new label"
+    assert after["assigned_at"] == original_at, "assigned_at must NOT change when only label updates"
+
+
+def test_unassign_clears_assigned_at(conn):
+    uid = create_user(conn, "Kyle", "kyle@example.com", "h")
+    cid = create_card(conn, "BB:22:CC:33")
+    assign_card(conn, cid, uid, label="x")
+    assert get_card_by_id(conn, cid)["assigned_at"] is not None
+
+    assign_card(conn, cid, None, label="x")
+    after = get_card_by_id(conn, cid)
+    assert after["user_id"] is None
+    assert after["assigned_at"] is None
+
+
+def test_reassign_updates_assigned_at(conn):
+    u1 = create_user(conn, "Liz", "liz@example.com", "h")
+    u2 = create_user(conn, "Max", "max@example.com", "h")
+    cid = create_card(conn, "CC:33:DD:44")
+    assign_card(conn, cid, u1, label="x")
+    first_at = get_card_by_id(conn, cid)["assigned_at"]
+
+    # Brief sleep so the SQLite timestamp differs
+    import time as _time
+    _time.sleep(1.1)
+
+    assign_card(conn, cid, u2, label="x")
+    after = get_card_by_id(conn, cid)
+    assert after["user_id"] == u2
+    assert after["assigned_at"] != first_at
+
+
 def test_list_cards_includes_user_name(conn):
     uid = create_user(conn, "Kim", "kim@example.com", "h")
     cid = create_card(conn, "99:AA:BB:CC")

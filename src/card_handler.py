@@ -27,6 +27,7 @@ class CardHandler:
         self._conn = conn
         self._display = display
         self._reg_callback: Optional[Callable[[str], None]] = None
+        self._reg_event: Optional[threading.Event] = None
         self._reg_lock = threading.Lock()
 
     # ------------------------------------------------------------------
@@ -39,25 +40,33 @@ class CardHandler:
         Enter tap-to-register mode for at most `timeout` seconds.
         The next card tap calls callback(uid) and exits registration mode.
         If no card is tapped within the timeout the mode cancels silently.
+        The timer thread exits early via Event when registration is consumed.
         """
+        event = threading.Event()
         with self._reg_lock:
             self._reg_callback = callback
+            self._reg_event = event
 
         def _expire():
-            import time
-            time.sleep(timeout)
+            # event.wait returns True if set() was called, False on timeout
+            consumed = event.wait(timeout)
+            if consumed:
+                return
             with self._reg_lock:
                 if self._reg_callback is callback:
                     self._reg_callback = None
+                    self._reg_event = None
                     logger.debug("Registration mode timed out")
 
-        t = threading.Thread(target=_expire, daemon=True)
-        t.start()
+        threading.Thread(target=_expire, daemon=True).start()
         logger.info("Registration mode active (timeout=%.0fs)", timeout)
 
     def cancel_registration(self) -> None:
         with self._reg_lock:
             self._reg_callback = None
+            if self._reg_event is not None:
+                self._reg_event.set()
+                self._reg_event = None
 
     # ------------------------------------------------------------------
     # Main scan handler
@@ -77,14 +86,21 @@ class CardHandler:
         # Registration mode takes priority
         with self._reg_lock:
             reg_cb = self._reg_callback
+            reg_event = self._reg_event
             if reg_cb is not None:
                 self._reg_callback = None
+                self._reg_event = None
 
         if reg_cb is not None:
             logger.info("Registration capture: %s", uid)
-            self._display.show("Card captured", uid[:11], duration=2.0)
+            # Wake the timer thread immediately so it can exit
+            if reg_event is not None:
+                reg_event.set()
+            # Buzz first (instant feedback), fire callback (returns the
+            # API response), then block on the display message.
             self._display.buzz("check_in")
             reg_cb(uid)
+            self._display.show("Card captured", uid[:11], duration=2.0)
             return None
 
         # Normal check-in / check-out flow
