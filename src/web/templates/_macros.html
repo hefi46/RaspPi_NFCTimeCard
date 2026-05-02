@@ -1,0 +1,31 @@
+{# Reusable bits — avatars, badges #}
+
+{% macro initials(name) -%}
+  {%- set parts = (name or '?').split() -%}
+  {%- if parts | length >= 2 -%}{{ (parts[0][0] ~ parts[-1][0]) | upper }}
+  {%- else -%}{{ (parts[0][:2]) | upper }}{%- endif -%}
+{%- endmacro %}
+
+{% macro avatar_color(seed) -%}
+  {%- set n = ((seed | string | length) + (seed or 0) | int) % 6 + 1 -%}avatar-color-{{ n }}
+{%- endmacro %}
+
+{% macro avatar(name, seed=None, size='') -%}
+  <span class="avatar {% if size %}avatar-{{ size }}{% endif %} {{ avatar_color(seed or name) }}">{{ initials(name) }}</span>
+{%- endmacro %}
+
+{% macro action_badge(action) -%}
+  {% if action == 'check_in' %}
+    <span class="badge badge-in"><span class="badge-dot"></span>Check in</span>
+  {% else %}
+    <span class="badge badge-out"><span class="badge-dot"></span>Check out</span>
+  {% endif %}
+{%- endmacro %}
+
+{% macro inout_badge(is_in) -%}
+  {% if is_in %}
+    <span class="badge badge-in"><span class="badge-dot"></span>In</span>
+  {% else %}
+    <span class="badge badge-out"><span class="badge-dot"></span>Out</span>
+  {% endif %}
+{%- endmacro %}

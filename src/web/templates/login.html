@@ -3,42 +3,92 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Login — NFC TimeCard</title>
+  <title>Sign in — ClockIn</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
-<body class="login-body">
-  <div class="login-card">
-    <h1>NFC TimeCard</h1>
-    <p id="login-error" class="error hidden"></p>
-    <form id="login-form">
-      <label for="email">Email</label>
-      <input id="email" type="email" name="email" required autofocus>
-      <label for="password">Password</label>
-      <input id="password" type="password" name="password" required>
-      <button type="submit">Sign in</button>
+<body style="background:#2a2926;margin:0">
+
+<div class="login-stage" style="height:100vh;width:100vw">
+  <div class="login-left">
+    <div class="login-mark">
+      <div class="login-mark-icon">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+          <path d="M5 12c0-3 2-5 5-5"/><path d="M5 16c0-5 3.5-9 9-9"/><path d="M5 20c0-7 6-13 13-13"/>
+        </svg>
+      </div>
+      <span>ClockIn</span>
+    </div>
+
+    <div class="login-graphic" aria-hidden>
+      <svg viewBox="0 0 280 280" width="100%" height="100%" fill="none" stroke-linecap="round" stroke-linejoin="round">
+        <g stroke="rgba(255,255,255,.85)" stroke-width="1.4">
+          <circle cx="92" cy="140" r="14" fill="rgba(255,255,255,.06)"/>
+          <path d="M92 110 a30 30 0 0 1 0 60"/>
+          <path d="M92 92 a48 48 0 0 1 0 96"/>
+          <path d="M92 74 a66 66 0 0 1 0 132"/>
+          <path d="M92 56 a84 84 0 0 1 0 168"/>
+        </g>
+        <g transform="translate(150 90) rotate(-10)" stroke="rgba(255,255,255,.7)" stroke-width="1.4">
+          <rect x="0" y="0" width="110" height="70" rx="8" fill="rgba(255,255,255,.04)"/>
+          <rect x="12" y="14" width="22" height="16" rx="2" fill="rgba(255,255,255,.12)" stroke="none"/>
+          <line x1="12" y1="42" x2="76" y2="42" stroke="rgba(255,255,255,.35)"/>
+          <line x1="12" y1="50" x2="58" y2="50" stroke="rgba(255,255,255,.25)"/>
+        </g>
+        <g transform="translate(204 178)">
+          <circle r="18" fill="rgba(255,255,255,.08)" stroke="rgba(255,255,255,.5)" stroke-width="1.2"/>
+          <path d="M-7 0 l5 5 l10 -10" stroke="rgba(255,255,255,.95)" stroke-width="1.6" fill="none"/>
+        </g>
+      </svg>
+    </div>
+  </div>
+
+  <div class="login-right">
+    <form class="login-form" id="login-form">
+      <div><h1>Sign in to ClockIn</h1></div>
+
+      <p id="login-error" class="error hidden"></p>
+
+      <div class="field">
+        <label class="field-label" for="email">Email</label>
+        <input class="login-input" id="email" type="email" name="email" required autofocus>
+      </div>
+      <div class="field">
+        <label class="field-label" for="password">Password</label>
+        <input class="login-input" id="password" type="password" name="password" required>
+      </div>
+
+      <button class="login-submit" type="submit">
+        Sign in
+        <span class="kbd" style="background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.2);color:rgba(255,255,255,.7)">↵</span>
+      </button>
     </form>
   </div>
-  <script>
-    document.getElementById('login-form').addEventListener('submit', async e => {
-      e.preventDefault();
-      const err = document.getElementById('login-error');
-      err.classList.add('hidden');
-      const res = await fetch('/auth/login', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-          email: document.getElementById('email').value,
-          password: document.getElementById('password').value,
-        }),
-      });
-      if (res.ok) {
-        window.location.href = '/';
-      } else {
-        const data = await res.json();
-        err.textContent = data.error || 'Login failed';
-        err.classList.remove('hidden');
-      }
+</div>
+
+<script>
+  document.getElementById('login-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const err = document.getElementById('login-error');
+    err.classList.add('hidden');
+    const res = await fetch('/auth/login', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        email: document.getElementById('email').value,
+        password: document.getElementById('password').value,
+      }),
     });
-  </script>
+    if (res.ok) { window.location.href = '/'; }
+    else {
+      const data = await res.json().catch(() => ({}));
+      err.textContent = data.error || 'Login failed';
+      err.classList.remove('hidden');
+    }
+  });
+</script>
+
 </body>
 </html>

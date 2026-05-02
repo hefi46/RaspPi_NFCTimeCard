@@ -1,3 +1,5 @@
+from datetime import date
+
 from flask import Blueprint, current_app, g, render_template, request
 
 from src import database as db
@@ -22,10 +24,30 @@ def login_page():
 def dashboard():
     conn = _conn()
     recent_logs, total_logs = db.list_logs(conn, per_page=10)
-    checked_in = db.count_checked_in(conn)
-    return render_template("dashboard.html", user=g.current_user,
-                           logs=recent_logs, total_logs=total_logs,
-                           checked_in=checked_in)
+    checked_in_count = db.count_checked_in(conn)
+    on_floor = db.list_currently_checked_in(conn)
+    stats = {
+        "in_today":         db.count_action_today(conn, "check_in"),
+        "out_today":        db.count_action_today(conn, "check_out"),
+        "taps_today":       db.count_taps_today(conn),
+        "cards_total":      len(db.list_cards(conn)),
+        "cards_unassigned": db.count_unassigned_cards(conn),
+    }
+    today = date.today()
+    try:
+        today_label = today.strftime("%A, %B %-d")
+    except ValueError:
+        today_label = today.strftime("%A, %B %d").replace(" 0", " ")
+    return render_template(
+        "dashboard.html",
+        user=g.current_user,
+        logs=recent_logs,
+        total_logs=total_logs,
+        checked_in=checked_in_count,
+        on_floor=on_floor,
+        stats=stats,
+        today_label=today_label,
+    )
 
 
 @views_bp.route("/logs")

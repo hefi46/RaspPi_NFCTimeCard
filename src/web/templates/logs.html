@@ -1,76 +1,102 @@
 {% extends "base.html" %}
-{% block title %}Time Logs{% endblock %}
+{% from "_macros.html" import avatar, action_badge %}
+{% block title %}Time logs{% endblock %}
 {% block content %}
 
-<h2>Time Logs</h2>
-
-<form class="filter-bar" method="get" action="{{ url_for('views.logs_page') }}">
+<div class="page-head">
   <div>
-    <label>Employee</label>
-    <select name="user_id">
-      <option value="">All</option>
+    <div class="page-title">Time logs</div>
+    <div class="page-sub">All recorded check-in and check-out events.</div>
+  </div>
+  <div class="page-actions">
+    <a class="btn btn-primary" href="{{ url_for('api.export_logs_csv', **request.args) }}">
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 4v12m0 0l-4-4m4 4l4-4"/><path d="M4 20h16"/></svg>
+      Export CSV
+    </a>
+  </div>
+</div>
+
+<form class="logs-filter" method="get" action="{{ url_for('views.logs_page') }}">
+  <div class="field">
+    <label class="field-label">Employee</label>
+    <select class="select" name="user_id">
+      <option value="">All employees</option>
       {% for u in users %}
       <option value="{{ u.id }}" {% if filters.user_id == u.id %}selected{% endif %}>{{ u.name }}</option>
       {% endfor %}
     </select>
   </div>
-  <div>
-    <label>From</label>
-    <input type="date" name="from" value="{{ filters.from or '' }}">
+  <div class="field">
+    <label class="field-label">From</label>
+    <input class="input" type="date" name="from" value="{{ filters.from or '' }}">
   </div>
-  <div>
-    <label>To</label>
-    <input type="date" name="to" value="{{ filters.to or '' }}">
+  <div class="field">
+    <label class="field-label">To</label>
+    <input class="input" type="date" name="to" value="{{ filters.to or '' }}">
   </div>
-  <button type="submit" class="btn btn-primary btn-sm">Filter</button>
-  <a href="{{ url_for('views.logs_page') }}" class="btn btn-ghost btn-sm">Clear</a>
-  <a href="{{ url_for('api.export_logs_csv', **request.args) }}" class="btn btn-export btn-sm">⬇ Export CSV</a>
+  <div class="field"><label class="field-label">&nbsp;</label></div>
+  <div class="actions">
+    <button class="btn btn-primary btn-sm" type="submit">Apply</button>
+    <a class="btn btn-ghost btn-sm" href="{{ url_for('views.logs_page') }}">Reset</a>
+  </div>
 </form>
 
+<div class="logs-summary">
+  <span><b>{{ total }}</b> event{{ 's' if total != 1 }}</span>
+  {% if filters.from or filters.to %}
+    <span class="dim">·</span>
+    <span><b>{{ filters.from or '…' }}</b> → <b>{{ filters.to or '…' }}</b></span>
+  {% endif %}
+</div>
+
 <div class="panel">
-  <div class="panel-header">
-    <h2>Results</h2>
-    <span class="muted" style="font-size:.8rem">{{ total }} record{{ 's' if total != 1 }}</span>
-  </div>
-  <div class="table-wrap">
-    <table>
-      <thead>
-        <tr>
-          <th>Timestamp</th>
-          <th>Name</th>
-          <th>Action</th>
-          <th>Card</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for log in logs %}
-        <tr>
-          <td class="muted">{{ log.timestamp }}</td>
-          <td>{{ log.user_name or '—' }}</td>
-          <td>
-            <span class="badge {% if log.action == 'check_in' %}badge-in{% else %}badge-out{% endif %}">
-              {{ 'Check in' if log.action == 'check_in' else 'Check out' }}
-            </span>
-          </td>
-          <td class="muted">{{ log.card_label or log.card_uid }}</td>
-        </tr>
-        {% else %}
-        <tr><td colspan="4" class="muted" style="text-align:center;padding:1.5rem">No records match the current filter.</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
+  <table class="tbl">
+    <thead>
+      <tr>
+        <th style="width:200px">Timestamp</th>
+        <th>Employee</th>
+        <th style="width:160px">Action</th>
+        <th>Card</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for log in logs %}
+      <tr>
+        <td><span class="timestamp">{{ log.timestamp }}</span></td>
+        <td>
+          <div style="display:flex;gap:10px;align-items:center">
+            {{ avatar(log.user_name or '?', seed=log.user_id) }}
+            <span style="font-weight:500">{{ log.user_name or '—' }}</span>
+          </div>
+        </td>
+        <td>{{ action_badge(log.action) }}</td>
+        <td>
+          {% if log.card_uid %}
+            <span class="uid">{{ log.card_uid }}</span>
+            {% if log.card_label %}<div class="dim" style="font-size:11px">{{ log.card_label }}</div>{% endif %}
+          {% else %}
+            <span class="badge">manual</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="4" class="dim" style="text-align:center;padding:1.5rem">No records match the current filter.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
 </div>
 
 {% if pages > 1 %}
-<div class="pagination">
-  {% if page > 1 %}
-    <a href="?page={{ page - 1 }}&user_id={{ filters.user_id or '' }}&from={{ filters.from or '' }}&to={{ filters.to or '' }}">‹ Prev</a>
-  {% endif %}
-  <span>Page <span class="current">{{ page }}</span> of {{ pages }}</span>
-  {% if page < pages %}
-    <a href="?page={{ page + 1 }}&user_id={{ filters.user_id or '' }}&from={{ filters.from or '' }}&to={{ filters.to or '' }}">Next ›</a>
-  {% endif %}
+<div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px;font-size:12.5px;color:var(--dim)">
+  <span>Page {{ page }} of {{ pages }}</span>
+  <div style="display:flex;gap:6px">
+    {% if page > 1 %}
+      <a class="btn btn-sm" href="?page={{ page - 1 }}&user_id={{ filters.user_id or '' }}&from={{ filters.from or '' }}&to={{ filters.to or '' }}">‹ Prev</a>
+    {% endif %}
+    {% if page < pages %}
+      <a class="btn btn-sm" href="?page={{ page + 1 }}&user_id={{ filters.user_id or '' }}&from={{ filters.from or '' }}&to={{ filters.to or '' }}">Next ›</a>
+    {% endif %}
+  </div>
 </div>
 {% endif %}
 

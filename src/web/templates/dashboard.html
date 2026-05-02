@@ -1,52 +1,87 @@
 {% extends "base.html" %}
+{% from "_macros.html" import avatar, action_badge %}
 {% block title %}Dashboard{% endblock %}
 {% block content %}
 
-<h2>Dashboard</h2>
-
-<div class="stat-grid">
-  <div class="stat-card">
-    <div class="stat-value">{{ checked_in }}</div>
-    <div class="stat-label">Currently checked in</div>
+<div class="page-head">
+  <div>
+    <div class="page-title">Dashboard</div>
+    <div class="page-sub">{{ today_label }} · {{ checked_in }} currently checked in</div>
   </div>
-  <div class="stat-card">
-    <div class="stat-value">{{ total_logs }}</div>
-    <div class="stat-label">Total log entries</div>
+  <div class="page-actions">
+    <a href="{{ url_for('api.export_logs_csv') }}" class="btn">Export today</a>
+    <a href="{{ url_for('views.manual_page') }}" class="btn btn-primary">+ Manual check-in</a>
   </div>
 </div>
 
-<div class="panel">
-  <div class="panel-header">
-    <h2>Recent Activity</h2>
-    <a href="{{ url_for('views.logs_page') }}" class="btn btn-ghost btn-sm">View all</a>
+<div class="stat-grid">
+  <div class="stat">
+    <div class="stat-label">Checked in now</div>
+    <div class="stat-value">{{ checked_in }}</div>
+    <div class="stat-delta">{{ stats.in_today or 0 }} in today</div>
   </div>
-  <div class="table-wrap">
-    <table>
-      <thead>
-        <tr>
-          <th>Time</th>
-          <th>Name</th>
-          <th>Action</th>
-          <th>Card</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for log in logs %}
-        <tr>
-          <td class="muted">{{ log.timestamp }}</td>
-          <td>{{ log.user_name or '—' }}</td>
-          <td>
-            <span class="badge {% if log.action == 'check_in' %}badge-in{% else %}badge-out{% endif %}">
-              {{ 'Check in' if log.action == 'check_in' else 'Check out' }}
-            </span>
-          </td>
-          <td class="muted">{{ log.card_label or log.card_uid }}</td>
-        </tr>
-        {% else %}
-        <tr><td colspan="4" class="muted" style="text-align:center;padding:1.5rem">No activity yet.</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
+  <div class="stat">
+    <div class="stat-label">Today's taps</div>
+    <div class="stat-value">{{ stats.taps_today or 0 }}</div>
+    <div class="stat-delta">{{ stats.in_today or 0 }} in · {{ stats.out_today or 0 }} out</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Total log entries</div>
+    <div class="stat-value">{{ total_logs }}</div>
+    <div class="stat-delta">all time</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Cards registered</div>
+    <div class="stat-value">{{ stats.cards_total or 0 }}</div>
+    <div class="stat-delta">{{ stats.cards_unassigned or 0 }} unassigned</div>
+  </div>
+</div>
+
+<div class="dash-grid">
+  <div class="panel">
+    <div class="panel-head">
+      <div class="panel-title">Recent activity</div>
+      <a class="btn btn-ghost btn-sm" href="{{ url_for('views.logs_page') }}">View all logs →</a>
+    </div>
+    <div class="timeline">
+      {% for log in logs %}
+      <div class="timeline-row">
+        <span class="timeline-time">{{ log.timestamp[-8:] }}</span>
+        <div class="timeline-who">
+          {{ avatar(log.user_name or '?', seed=log.user_id) }}
+          <div>
+            <div class="timeline-who-name">{{ log.user_name or '—' }}</div>
+            <div class="timeline-who-card">{{ log.card_uid or 'manual' }}</div>
+          </div>
+        </div>
+        {{ action_badge(log.action) }}
+      </div>
+      {% else %}
+      <div class="timeline-row"><span class="dim" style="grid-column:1/-1;text-align:center;padding:1.5rem">No activity yet.</span></div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <div class="panel-title">On the floor · {{ checked_in }}</div>
+    </div>
+    <div class="roster-list">
+      {% for r in on_floor %}
+      <div class="roster-row">
+        <div class="roster-who">
+          {{ avatar(r.name, seed=r.id) }}
+          <div>
+            <div class="roster-who-name">{{ r.name }}</div>
+            <div class="roster-who-meta">in at {{ r.since }}</div>
+          </div>
+        </div>
+        <span class="roster-elapsed">{{ r.elapsed }}</span>
+      </div>
+      {% else %}
+      <div class="roster-row"><span class="dim" style="grid-column:1/-1;text-align:center;padding:1.5rem">Nobody checked in.</span></div>
+      {% endfor %}
+    </div>
   </div>
 </div>
 

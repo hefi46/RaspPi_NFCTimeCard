@@ -4,6 +4,7 @@ Callers are responsible for connection lifecycle and commits.
 """
 
 import sqlite3
+from datetime import datetime
 from typing import Any, Optional
 
 
@@ -222,6 +223,56 @@ def count_checked_in(conn: sqlite3.Connection) -> int:
             AND action = 'check_in'
         )
     """).fetchone()[0]
+
+
+def list_currently_checked_in(conn: sqlite3.Connection) -> list[dict]:
+    """Users whose latest log is check_in. Returns [{id, name, since, elapsed}]."""
+    rows = conn.execute("""
+        SELECT u.id, u.name, l.timestamp AS since
+        FROM users u
+        JOIN time_logs l ON l.id = (
+            SELECT id FROM time_logs
+            WHERE user_id = u.id
+            ORDER BY timestamp DESC, id DESC
+            LIMIT 1
+        )
+        WHERE l.action = 'check_in'
+        ORDER BY l.timestamp DESC
+    """).fetchall()
+
+    out: list[dict] = []
+    now = datetime.now()
+    for r in rows:
+        d = dict(r)
+        ts = datetime.fromisoformat(d["since"])
+        delta = now - ts
+        total_minutes = max(0, int(delta.total_seconds()) // 60)
+        h, m = divmod(total_minutes, 60)
+        d["since"] = ts.strftime("%H:%M")
+        d["elapsed"] = f"{h}h {m:02d}m"
+        out.append(d)
+    return out
+
+
+def count_action_today(conn: sqlite3.Connection, action: str) -> int:
+    return conn.execute(
+        "SELECT COUNT(*) FROM time_logs "
+        "WHERE action = ? AND date(timestamp) = date('now', 'localtime')",
+        (action,),
+    ).fetchone()[0]
+
+
+def count_taps_today(conn: sqlite3.Connection) -> int:
+    return conn.execute(
+        "SELECT COUNT(*) FROM time_logs "
+        "WHERE date(timestamp) = date('now', 'localtime')"
+    ).fetchone()[0]
+
+
+def count_unassigned_cards(conn: sqlite3.Connection) -> int:
+    return conn.execute(
+        "SELECT COUNT(*) FROM cards WHERE user_id IS NULL"
+    ).fetchone()[0]
 
 
 # ---------------------------------------------------------------------------

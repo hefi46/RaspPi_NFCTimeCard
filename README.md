@@ -1,4 +1,4 @@
-# RaspPi NFC TimeCard
+# ClockIn (RaspPi NFC TimeCard)
 
 Self-contained NFC check-in / check-out terminal for a Raspberry Pi. Tap a card on a PN532 reader — a 2.8" colour TFT and buzzer confirm the action, and a web admin console served by the same Pi lets privileged users review logs, register cards, and manage employees.
 

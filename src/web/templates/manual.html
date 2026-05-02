@@ -1,107 +1,135 @@
 {% extends "base.html" %}
-{% block title %}Manual Check-in{% endblock %}
+{% from "_macros.html" import avatar, inout_badge %}
+{% block title %}Manual check-in{% endblock %}
 {% block content %}
 
-<h2>Manual Check-in / Check-out</h2>
-<p class="muted" style="margin-bottom:1rem">
-  Use this page when a card is missing, broken, or not yet assigned. The action
-  is recorded in the time log without a card UID.
-</p>
-
-<div class="panel" style="margin-bottom:1rem">
-  <div class="panel-body">
-    <input type="text" id="manual-search" placeholder="Search by name or email…"
-           style="width:100%;padding:.5rem;font-size:1rem">
+<div class="page-head">
+  <div>
+    <div class="page-title">Manual check-in</div>
+    <div class="page-sub">Use this when a card is missing, broken, or unassigned. Actions are logged without a card UID.</div>
+  </div>
+  <div class="page-actions">
+    <span class="status-pill"><span class="dot"></span> Reader idle · waiting for tap</span>
   </div>
 </div>
 
-<div id="manual-toast" class="capture-status hidden" style="margin-bottom:1rem"></div>
+{% set in_count = users | selectattr('last_action', 'equalto', 'check_in') | list | length %}
+{% set out_count = users | length - in_count %}
 
-<div class="panel">
-  <div class="table-wrap">
-    <table>
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Email</th>
-          <th>Status</th>
-          <th>Last action</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody id="manual-tbody">
-        {% for u in users %}
-        {% set is_in = u.last_action == 'check_in' %}
-        {% set hide_email = u.email and u.email.endswith('@local.invalid') %}
-        <tr id="manual-row-{{ u.id }}"
-            data-name="{{ u.name | lower }}"
-            data-email="{{ '' if hide_email else (u.email or '') | lower }}">
-          <td>{{ u.name }}</td>
-          <td class="muted">{{ '—' if hide_email else u.email }}</td>
-          <td>
-            <span class="badge {% if is_in %}badge-admin{% endif %}">
-              {% if is_in %}Checked in{% else %}Out{% endif %}
-            </span>
-          </td>
-          <td class="muted">{{ u.last_timestamp or '—' }}</td>
-          <td class="actions">
-            {% if is_in %}
-              <button class="btn btn-ghost btn-sm"
-                onclick='manualAction({{ u.id }}, {{ u.name | tojson }}, "check_out")'>
-                Check out
-              </button>
-            {% else %}
-              <button class="btn btn-primary btn-sm"
-                onclick='manualAction({{ u.id }}, {{ u.name | tojson }}, "check_in")'>
-                Check in
-              </button>
-            {% endif %}
-          </td>
-        </tr>
-        {% else %}
-        <tr><td colspan="5" class="muted" style="text-align:center;padding:1.5rem">
-          No users yet. Add one in the Users page.
-        </td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
+<div class="manual-hero">
+  <div class="manual-search-block">
+    <h3>Find someone</h3>
+    <div class="search">
+      <span class="search-icon">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="11" cy="11" r="6"/><path d="M20 20l-3.5-3.5"/></svg>
+      </span>
+      <input id="manual-search" placeholder="Search by name or email…">
+    </div>
+    <div style="display:flex;gap:6px;margin-top:12px" id="manual-chips">
+      <span class="chip chip-active" data-filter="all">All · {{ users | length }}</span>
+      <span class="chip" data-filter="in">Checked in · {{ in_count }}</span>
+      <span class="chip" data-filter="out">Out · {{ out_count }}</span>
+    </div>
   </div>
+
+  <div class="manual-tally">
+    <div class="manual-tally-cell">
+      <span class="label">In</span>
+      <span class="value" style="color:var(--in-fg)">{{ in_count }}</span>
+    </div>
+    <div class="divider-y"></div>
+    <div class="manual-tally-cell">
+      <span class="label">Out</span>
+      <span class="value">{{ out_count }}</span>
+    </div>
+  </div>
+</div>
+
+<div id="manual-toast" class="status-pill hidden" style="margin-bottom:14px"></div>
+
+<div class="roster-grid" id="roster-grid">
+  {% for u in users %}
+  {% set is_in = u.last_action == 'check_in' %}
+  {% set hide_email = u.email and u.email.endswith('@local.invalid') %}
+  <div class="roster-card {% if is_in %}is-in{% endif %}"
+       data-row
+       data-status="{{ 'in' if is_in else 'out' }}"
+       data-name="{{ u.name | lower }}"
+       data-email="{{ '' if hide_email else (u.email or '') | lower }}">
+    <div class="roster-card-head">
+      {{ avatar(u.name, seed=u.id, size='lg') }}
+      <div style="flex:1;min-width:0">
+        <div class="roster-card-name trunc">{{ u.name }}</div>
+        <div class="roster-card-email trunc">{{ '—' if hide_email else (u.email or '—') }}</div>
+      </div>
+      {{ inout_badge(is_in) }}
+    </div>
+
+    <div class="roster-card-meta">
+      <div>
+        <div class="label">Last action</div>
+        <div class="value" style="margin-top:2px;color:var(--ink-2)">{{ u.last_timestamp or '—' }}</div>
+      </div>
+      <div style="text-align:right">
+        <div class="label">Status</div>
+        <div class="value" style="margin-top:2px;color:var(--ink-2)">{{ 'In' if is_in else 'Out' }}</div>
+      </div>
+    </div>
+
+    <div class="roster-card-actions">
+      {% if is_in %}
+        <button class="btn btn-sm" style="flex:1;justify-content:center"
+                onclick='manualAction({{ u.id }}, {{ u.name | tojson }}, "check_out")'>Check out</button>
+      {% else %}
+        <button class="btn btn-primary btn-sm" style="flex:1;justify-content:center"
+                onclick='manualAction({{ u.id }}, {{ u.name | tojson }}, "check_in")'>Check in</button>
+      {% endif %}
+    </div>
+  </div>
+  {% else %}
+  <div class="dim" style="grid-column:1/-1;text-align:center;padding:2rem">No users yet. Add one in the Users page.</div>
+  {% endfor %}
 </div>
 
 {% endblock %}
 {% block scripts %}
 <script>
-// ── Live filter ────────────────────────────────────────────────────────
-document.getElementById('manual-search').addEventListener('input', e => {
-  const q = e.target.value.trim().toLowerCase();
-  document.querySelectorAll('#manual-tbody tr[data-name]').forEach(row => {
-    const hit = !q
-      || row.dataset.name.includes(q)
-      || row.dataset.email.includes(q);
-    row.style.display = hit ? '' : 'none';
-  });
-});
+const search = document.getElementById('manual-search');
+const chips  = document.querySelectorAll('#manual-chips .chip');
+let activeFilter = 'all';
 
-// ── Toast helper ───────────────────────────────────────────────────────
+function applyFilter() {
+  const q = (search.value || '').trim().toLowerCase();
+  document.querySelectorAll('[data-row]').forEach(row => {
+    const matchQ = !q || row.dataset.name.includes(q) || row.dataset.email.includes(q);
+    const matchF = activeFilter === 'all' || row.dataset.status === activeFilter;
+    row.style.display = (matchQ && matchF) ? '' : 'none';
+  });
+}
+search.addEventListener('input', applyFilter);
+chips.forEach(c => c.addEventListener('click', () => {
+  chips.forEach(x => x.classList.remove('chip-active'));
+  c.classList.add('chip-active');
+  activeFilter = c.dataset.filter;
+  applyFilter();
+}));
+
 function showToast(msg, kind) {
   const t = document.getElementById('manual-toast');
-  t.className = 'capture-status ' + (kind === 'error' ? 'error' : 'captured');
+  t.className = 'status-pill ' + (kind === 'error' ? 'waiting' : 'captured');
   t.textContent = msg;
   t.classList.remove('hidden');
-  setTimeout(() => t.classList.add('hidden'), 3000);
+  setTimeout(() => t.classList.add('hidden'), 2500);
 }
 
-// ── Perform the action ─────────────────────────────────────────────────
 async function manualAction(userId, userName, action) {
   const verb = action === 'check_in' ? 'check in' : 'check out';
   if (!confirm(`Manually ${verb} ${userName}?`)) return;
-
   const res = await fetch('/api/manual-checkin', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
+    method: 'POST', headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({ user_id: userId, action }),
   });
-  const data = await res.json();
+  const data = await res.json().catch(() => ({}));
   if (res.ok) {
     showToast(`✓ ${data.user_name} → ${data.action.replace('_', ' ')}`, 'ok');
     setTimeout(() => window.location.reload(), 600);

@@ -1,4 +1,4 @@
-# RaspPi NFC TimeCard — Ultraplan
+# ClockIn (RaspPi NFC TimeCard) — Ultraplan
 
 ## Vision
 
