@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block title %}Manual Check-in{% endblock %}
+{% block content %}
+
+<h2>Manual Check-in / Check-out</h2>
+<p class="muted" style="margin-bottom:1rem">
+  Use this page when a card is missing, broken, or not yet assigned. The action
+  is recorded in the time log without a card UID.
+</p>
+
+<div class="panel" style="margin-bottom:1rem">
+  <div class="panel-body">
+    <input type="text" id="manual-search" placeholder="Search by name or email…"
+           style="width:100%;padding:.5rem;font-size:1rem">
+  </div>
+</div>
+
+<div id="manual-toast" class="capture-status hidden" style="margin-bottom:1rem"></div>
+
+<div class="panel">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Status</th>
+          <th>Last action</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="manual-tbody">
+        {% for u in users %}
+        {% set is_in = u.last_action == 'check_in' %}
+        <tr id="manual-row-{{ u.id }}"
+            data-name="{{ u.name | lower }}"
+            data-email="{{ u.email | lower }}">
+          <td>{{ u.name }}</td>
+          <td class="muted">{{ u.email }}</td>
+          <td>
+            <span class="badge {% if is_in %}badge-admin{% endif %}">
+              {% if is_in %}Checked in{% else %}Out{% endif %}
+            </span>
+          </td>
+          <td class="muted">{{ u.last_timestamp or '—' }}</td>
+          <td class="actions">
+            {% if is_in %}
+              <button class="btn btn-ghost btn-sm"
+                onclick='manualAction({{ u.id }}, {{ u.name | tojson }}, "check_out")'>
+                Check out
+              </button>
+            {% else %}
+              <button class="btn btn-primary btn-sm"
+                onclick='manualAction({{ u.id }}, {{ u.name | tojson }}, "check_in")'>
+                Check in
+              </button>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" class="muted" style="text-align:center;padding:1.5rem">
+          No users yet. Add one in the Users page.
+        </td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+// ── Live filter ────────────────────────────────────────────────────────
+document.getElementById('manual-search').addEventListener('input', e => {
+  const q = e.target.value.trim().toLowerCase();
+  document.querySelectorAll('#manual-tbody tr[data-name]').forEach(row => {
+    const hit = !q
+      || row.dataset.name.includes(q)
+      || row.dataset.email.includes(q);
+    row.style.display = hit ? '' : 'none';
+  });
+});
+
+// ── Toast helper ───────────────────────────────────────────────────────
+function showToast(msg, kind) {
+  const t = document.getElementById('manual-toast');
+  t.className = 'capture-status ' + (kind === 'error' ? 'error' : 'captured');
+  t.textContent = msg;
+  t.classList.remove('hidden');
+  setTimeout(() => t.classList.add('hidden'), 3000);
+}
+
+// ── Perform the action ─────────────────────────────────────────────────
+async function manualAction(userId, userName, action) {
+  const verb = action === 'check_in' ? 'check in' : 'check out';
+  if (!confirm(`Manually ${verb} ${userName}?`)) return;
+
+  const res = await fetch('/api/manual-checkin', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ user_id: userId, action }),
+  });
+  const data = await res.json();
+  if (res.ok) {
+    showToast(`✓ ${data.user_name} → ${data.action.replace('_', ' ')}`, 'ok');
+    setTimeout(() => window.location.reload(), 600);
+  } else {
+    showToast('✗ ' + (data.error || 'Action failed'), 'error');
+  }
+}
+</script>
+{% endblock %}

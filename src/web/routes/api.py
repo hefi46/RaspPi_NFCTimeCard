@@ -188,6 +188,40 @@ def capture_card():
 
 
 # ---------------------------------------------------------------------------
+# Manual check-in / check-out (no card required)
+# ---------------------------------------------------------------------------
+
+@api_bp.route("/manual-checkin", methods=["POST"])
+@require_admin
+def manual_checkin():
+    """
+    Reception-staff fallback: record a check-in/out for a user without a card.
+    Body: {user_id: int, action?: 'check_in' | 'check_out'}
+    If `action` is omitted, toggles based on the user's last log.
+    """
+    data = request.get_json(force=True) or {}
+    user_id = data.get("user_id")
+    action = data.get("action")
+
+    if not isinstance(user_id, int):
+        return jsonify({"error": "user_id is required"}), 400
+
+    user = db.get_user_by_id(_conn(), user_id)
+    if user is None:
+        return jsonify({"error": "User not found"}), 404
+
+    if action is None:
+        last = db.get_last_log_for_user(_conn(), user_id)
+        action = "check_out" if (last and last["action"] == "check_in") else "check_in"
+    elif action not in ("check_in", "check_out"):
+        return jsonify({"error": "action must be 'check_in' or 'check_out'"}), 400
+
+    log_id = db.insert_log(_conn(), None, user_id, action)
+    return jsonify({"ok": True, "log_id": log_id, "action": action,
+                    "user_name": user["name"]})
+
+
+# ---------------------------------------------------------------------------
 # Logs
 # ---------------------------------------------------------------------------
 

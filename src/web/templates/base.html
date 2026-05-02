@@ -19,6 +19,9 @@
     <a href="{{ url_for('views.dashboard') }}" class="{% if request.endpoint == 'views.dashboard' %}active{% endif %}">
       <span class="nav-icon">⊞</span> Dashboard
     </a>
+    <a href="{{ url_for('views.manual_page') }}" class="{% if request.endpoint == 'views.manual_page' %}active{% endif %}">
+      <span class="nav-icon">✓</span> Manual Check-in
+    </a>
     <a href="{{ url_for('views.logs_page') }}" class="{% if request.endpoint == 'views.logs_page' %}active{% endif %}">
       <span class="nav-icon">☰</span> Time Logs
     </a>

@@ -99,6 +99,26 @@ def count_admins(conn: sqlite3.Connection) -> int:
     ).fetchone()[0]
 
 
+def list_users_with_status(conn: sqlite3.Connection) -> list[dict]:
+    """List all users with their most-recent time-log action and timestamp."""
+    return _rows(conn.execute("""
+        SELECT u.id, u.name, u.email, u.role,
+               last.action    AS last_action,
+               last.timestamp AS last_timestamp
+        FROM users u
+        LEFT JOIN (
+            SELECT t1.user_id, t1.action, t1.timestamp
+            FROM time_logs t1
+            WHERE t1.id = (
+                SELECT id FROM time_logs t2
+                WHERE t2.user_id = t1.user_id
+                ORDER BY timestamp DESC, id DESC LIMIT 1
+            )
+        ) last ON last.user_id = u.id
+        ORDER BY u.name
+    """).fetchall())
+
+
 def update_user(conn: sqlite3.Connection, user_id: int, **fields) -> None:
     allowed = {"name", "email", "password", "role"}
     updates = {k: v for k, v in fields.items() if k in allowed}
@@ -216,7 +236,7 @@ def get_last_log_for_user(conn: sqlite3.Connection,
     ).fetchone())
 
 
-def insert_log(conn: sqlite3.Connection, card_id: int,
+def insert_log(conn: sqlite3.Connection, card_id: Optional[int],
                user_id: int, action: str) -> int:
     cur = conn.execute(
         "INSERT INTO time_logs (card_id, user_id, action) VALUES (?, ?, ?)",

@@ -324,6 +324,61 @@ def test_capture_card_with_mock_handler(app, conn, client):
 
 
 # ---------------------------------------------------------------------------
+# Manual check-in API
+# ---------------------------------------------------------------------------
+
+def test_manual_checkin_toggles_in_then_out(admin_client, conn):
+    uid = create_user(conn, "Mona", "mona@test.com", "h")
+    res = admin_client.post("/api/manual-checkin", json={"user_id": uid})
+    assert res.status_code == 200
+    assert res.get_json()["action"] == "check_in"
+
+    res = admin_client.post("/api/manual-checkin", json={"user_id": uid})
+    assert res.get_json()["action"] == "check_out"
+
+
+def test_manual_checkin_explicit_action(admin_client, conn):
+    uid = create_user(conn, "Nate", "nate@test.com", "h")
+    res = admin_client.post("/api/manual-checkin",
+                            json={"user_id": uid, "action": "check_in"})
+    assert res.status_code == 200
+    assert res.get_json()["action"] == "check_in"
+
+
+def test_manual_checkin_invalid_action(admin_client, conn):
+    uid = create_user(conn, "Owen", "owen@test.com", "h")
+    res = admin_client.post("/api/manual-checkin",
+                            json={"user_id": uid, "action": "loiter"})
+    assert res.status_code == 400
+
+
+def test_manual_checkin_unknown_user(admin_client):
+    res = admin_client.post("/api/manual-checkin", json={"user_id": 9999})
+    assert res.status_code == 404
+
+
+def test_manual_checkin_missing_user_id(admin_client):
+    res = admin_client.post("/api/manual-checkin", json={})
+    assert res.status_code == 400
+
+
+def test_manual_checkin_records_null_card(admin_client, conn):
+    """Manual logs have card_id=NULL so they're distinguishable from card scans."""
+    uid = create_user(conn, "Pia", "pia@test.com", "h")
+    admin_client.post("/api/manual-checkin", json={"user_id": uid})
+    row = conn.execute(
+        "SELECT card_id FROM time_logs WHERE user_id = ?", (uid,)
+    ).fetchone()
+    assert row["card_id"] is None
+
+
+def test_manual_checkin_requires_auth(client, conn):
+    create_user(conn, "Quinn", "quinn@test.com", "h")
+    res = client.post("/api/manual-checkin", json={"user_id": 1})
+    assert res.status_code == 401
+
+
+# ---------------------------------------------------------------------------
 # Logs API
 # ---------------------------------------------------------------------------
 

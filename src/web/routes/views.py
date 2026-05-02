@@ -60,6 +60,14 @@ def cards_page():
                            cards=cards, users=users)
 
 
+@views_bp.route("/manual")
+@login_required
+def manual_page():
+    conn = _conn()
+    users = db.list_users_with_status(conn)
+    return render_template("manual.html", user=g.current_user, users=users)
+
+
 @views_bp.route("/users")
 @login_required
 def users_page():
