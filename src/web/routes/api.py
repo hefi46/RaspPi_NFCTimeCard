@@ -38,16 +38,25 @@ def list_users():
 @api_bp.route("/users", methods=["POST"])
 @require_admin
 def create_user():
+    import secrets
     data = request.get_json(force=True) or {}
     name = (data.get("name") or "").strip()
-    email = (data.get("email") or "").strip().lower()
-    password = data.get("password") or ""
     role = data.get("role", "user")
 
-    if not name or not email or not password:
-        return jsonify({"error": "name, email, and password are required"}), 400
+    if not name:
+        return jsonify({"error": "name is required"}), 400
     if role not in ("admin", "user"):
         return jsonify({"error": "role must be 'admin' or 'user'"}), 400
+
+    if role == "admin":
+        email = (data.get("email") or "").strip().lower()
+        password = data.get("password") or ""
+        if not email or not password:
+            return jsonify({"error": "email and password are required for admins"}), 400
+    else:
+        # Staff: don't log in. Generate a placeholder email + unguessable password.
+        email = f"staff-{secrets.token_hex(6)}@local.invalid"
+        password = secrets.token_urlsafe(24)
 
     pw_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
     try:

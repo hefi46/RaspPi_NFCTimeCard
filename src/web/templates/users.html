@@ -24,7 +24,7 @@
         {% for u in users %}
         <tr id="user-row-{{ u.id }}">
           <td>{{ u.name }}</td>
-          <td>{{ u.email }}</td>
+          <td>{% if u.email.endswith('@local.invalid') %}<span class="muted">—</span>{% else %}{{ u.email }}{% endif %}</td>
           <td>
             <span class="badge {% if u.role == 'admin' %}badge-admin{% endif %}">{{ u.role }}</span>
           </td>
@@ -48,23 +48,23 @@
   <div class="modal">
     <h3>Add user</h3>
     <div class="form-group">
+      <label>Role</label>
+      <select id="add-role">
+        <option value="user">Staff (no login)</option>
+        <option value="admin">Admin (logs in to dashboard)</option>
+      </select>
+    </div>
+    <div class="form-group">
       <label>Name</label>
       <input type="text" id="add-name" placeholder="Full name">
     </div>
-    <div class="form-group">
+    <div class="form-group admin-only-field">
       <label>Email</label>
       <input type="email" id="add-email" placeholder="user@example.com">
     </div>
-    <div class="form-group">
+    <div class="form-group admin-only-field">
       <label>Password</label>
       <input type="password" id="add-password" placeholder="Temporary password">
-    </div>
-    <div class="form-group">
-      <label>Role</label>
-      <select id="add-role">
-        <option value="user">User</option>
-        <option value="admin">Admin</option>
-      </select>
     </div>
     <p id="add-error" class="error hidden"></p>
     <div class="modal-actions">
@@ -80,23 +80,23 @@
     <h3>Edit user</h3>
     <input type="hidden" id="edit-id">
     <div class="form-group">
+      <label>Role</label>
+      <select id="edit-role">
+        <option value="user">Staff (no login)</option>
+        <option value="admin">Admin (logs in to dashboard)</option>
+      </select>
+    </div>
+    <div class="form-group">
       <label>Name</label>
       <input type="text" id="edit-name">
     </div>
-    <div class="form-group">
+    <div class="form-group edit-admin-only-field">
       <label>Email</label>
       <input type="email" id="edit-email">
     </div>
-    <div class="form-group">
+    <div class="form-group edit-admin-only-field">
       <label>New password <span class="muted">(leave blank to keep current)</span></label>
       <input type="password" id="edit-password" placeholder="New password">
-    </div>
-    <div class="form-group">
-      <label>Role</label>
-      <select id="edit-role">
-        <option value="user">User</option>
-        <option value="admin">Admin</option>
-      </select>
     </div>
     <p id="edit-error" class="error hidden"></p>
     <div class="modal-actions">
@@ -119,27 +119,45 @@ function closeModal(id) {
 });
 
 // ── Add user ───────────────────────────────────────────────────────────
+function syncAddRoleFields() {
+  const isAdmin = document.getElementById('add-role').value === 'admin';
+  document.querySelectorAll('.admin-only-field').forEach(el => {
+    el.style.display = isAdmin ? '' : 'none';
+  });
+}
+
 function openAddModal() {
   ['add-name','add-email','add-password'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('add-role').value = 'user';
+  syncAddRoleFields();
   document.getElementById('add-error').classList.add('hidden');
   document.getElementById('add-modal').classList.remove('hidden');
   document.getElementById('add-name').focus();
 }
 
+document.getElementById('add-role').addEventListener('change', syncAddRoleFields);
+
 document.getElementById('add-save-btn').addEventListener('click', async () => {
   const err = document.getElementById('add-error');
   err.classList.add('hidden');
+  const role = document.getElementById('add-role').value;
   const body = {
-    name:     document.getElementById('add-name').value.trim(),
-    email:    document.getElementById('add-email').value.trim(),
-    password: document.getElementById('add-password').value,
-    role:     document.getElementById('add-role').value,
+    name: document.getElementById('add-name').value.trim(),
+    role,
   };
-  if (!body.name || !body.email || !body.password) {
-    err.textContent = 'Name, email and password are required';
+  if (!body.name) {
+    err.textContent = 'Name is required';
     err.classList.remove('hidden');
     return;
+  }
+  if (role === 'admin') {
+    body.email    = document.getElementById('add-email').value.trim();
+    body.password = document.getElementById('add-password').value;
+    if (!body.email || !body.password) {
+      err.textContent = 'Email and password are required for admins';
+      err.classList.remove('hidden');
+      return;
+    }
   }
   const res = await fetch('/api/users', {
     method: 'POST', headers: {'Content-Type': 'application/json'},
@@ -154,28 +172,43 @@ document.getElementById('add-save-btn').addEventListener('click', async () => {
 });
 
 // ── Edit user ──────────────────────────────────────────────────────────
+function syncEditRoleFields() {
+  const isAdmin = document.getElementById('edit-role').value === 'admin';
+  document.querySelectorAll('.edit-admin-only-field').forEach(el => {
+    el.style.display = isAdmin ? '' : 'none';
+  });
+}
+
 function openEditModal(id, name, email, role) {
   document.getElementById('edit-id').value    = id;
   document.getElementById('edit-name').value  = name;
-  document.getElementById('edit-email').value = email;
+  // Hide auto-generated staff placeholder emails
+  const visibleEmail = (email && email.endsWith('@local.invalid')) ? '' : (email || '');
+  document.getElementById('edit-email').value = visibleEmail;
   document.getElementById('edit-role').value  = role;
   document.getElementById('edit-password').value = '';
+  syncEditRoleFields();
   document.getElementById('edit-error').classList.add('hidden');
   document.getElementById('edit-modal').classList.remove('hidden');
   document.getElementById('edit-name').focus();
 }
 
+document.getElementById('edit-role').addEventListener('change', syncEditRoleFields);
+
 document.getElementById('edit-save-btn').addEventListener('click', async () => {
-  const id  = document.getElementById('edit-id').value;
-  const err = document.getElementById('edit-error');
+  const id   = document.getElementById('edit-id').value;
+  const err  = document.getElementById('edit-error');
   err.classList.add('hidden');
+  const role = document.getElementById('edit-role').value;
   const body = {
-    name:  document.getElementById('edit-name').value.trim(),
-    email: document.getElementById('edit-email').value.trim(),
-    role:  document.getElementById('edit-role').value,
+    name: document.getElementById('edit-name').value.trim(),
+    role,
   };
-  const pw = document.getElementById('edit-password').value;
-  if (pw) body.password = pw;
+  if (role === 'admin') {
+    body.email = document.getElementById('edit-email').value.trim();
+    const pw = document.getElementById('edit-password').value;
+    if (pw) body.password = pw;
+  }
 
   const res = await fetch(`/api/users/${id}`, {
     method: 'PATCH', headers: {'Content-Type': 'application/json'},

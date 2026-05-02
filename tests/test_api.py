@@ -148,8 +148,24 @@ def test_create_user(admin_client):
 
 
 def test_create_user_missing_fields(admin_client):
-    res = admin_client.post("/api/users", json={"name": "X"})
+    res = admin_client.post("/api/users", json={})
     assert res.status_code == 400
+
+
+def test_create_admin_missing_credentials(admin_client):
+    res = admin_client.post("/api/users", json={"name": "X", "role": "admin"})
+    assert res.status_code == 400
+
+
+def test_create_staff_only_needs_name(admin_client, conn):
+    """role=user (staff) records auto-generate a placeholder email + password."""
+    res = admin_client.post("/api/users", json={"name": "Stan"})
+    assert res.status_code == 201
+    uid = res.get_json()["id"]
+    from src.database import get_user_by_id
+    row = get_user_by_id(conn, uid)
+    assert row["role"] == "user"
+    assert row["email"].endswith("@local.invalid")
 
 
 def test_create_user_invalid_role(admin_client):
@@ -162,7 +178,7 @@ def test_create_user_invalid_role(admin_client):
 def test_create_user_duplicate_email(admin_client, conn):
     create_user(conn, "Dave", "dave@test.com", "h")
     res = admin_client.post("/api/users", json={
-        "name": "Dave2", "email": "dave@test.com", "password": "pass"
+        "name": "Dave2", "email": "dave@test.com", "password": "pass", "role": "admin"
     })
     assert res.status_code == 409
 

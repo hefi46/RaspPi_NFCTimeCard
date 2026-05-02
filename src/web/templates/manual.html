@@ -32,11 +32,12 @@
       <tbody id="manual-tbody">
         {% for u in users %}
         {% set is_in = u.last_action == 'check_in' %}
+        {% set hide_email = u.email and u.email.endswith('@local.invalid') %}
         <tr id="manual-row-{{ u.id }}"
             data-name="{{ u.name | lower }}"
-            data-email="{{ u.email | lower }}">
+            data-email="{{ '' if hide_email else (u.email or '') | lower }}">
           <td>{{ u.name }}</td>
-          <td class="muted">{{ u.email }}</td>
+          <td class="muted">{{ '—' if hide_email else u.email }}</td>
           <td>
             <span class="badge {% if is_in %}badge-admin{% endif %}">
               {% if is_in %}Checked in{% else %}Out{% endif %}
