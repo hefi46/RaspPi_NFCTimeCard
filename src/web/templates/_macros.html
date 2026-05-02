@@ -1,17 +1,18 @@
 {# Reusable bits — avatars, badges #}
 
 {% macro initials(name) -%}
-  {%- set parts = (name or '?').split() -%}
+  {%- set parts = ((name or '?').strip() or '?').split() -%}
   {%- if parts | length >= 2 -%}{{ (parts[0][0] ~ parts[-1][0]) | upper }}
   {%- else -%}{{ (parts[0][:2]) | upper }}{%- endif -%}
 {%- endmacro %}
 
 {% macro avatar_color(seed) -%}
-  {%- set n = ((seed | string | length) + (seed or 0) | int) % 6 + 1 -%}avatar-color-{{ n }}
+  {%- set s = (seed | string) or '?' -%}
+  {%- set n = (s | length) % 6 + 1 -%}avatar-color-{{ n }}
 {%- endmacro %}
 
 {% macro avatar(name, seed=None, size='') -%}
-  <span class="avatar {% if size %}avatar-{{ size }}{% endif %} {{ avatar_color(seed or name) }}">{{ initials(name) }}</span>
+  <span class="avatar {% if size %}avatar-{{ size }}{% endif %} {{ avatar_color(seed if seed is not none else name) }}">{{ initials(name) }}</span>
 {%- endmacro %}
 
 {% macro action_badge(action) -%}

@@ -6,6 +6,8 @@ from src.database import (
     assign_card, delete_card,
     insert_log, get_last_log_for_user, list_logs,
     create_session, get_session, delete_session, delete_expired_sessions,
+    count_cards, count_unassigned_cards, count_taps_today,
+    count_action_today, list_currently_checked_in,
 )
 
 
@@ -258,6 +260,87 @@ def test_delete_session(conn):
     create_session(conn, "delme", uid, "2099-01-01 00:00:00")
     delete_session(conn, "delme")
     assert get_session(conn, "delme") is None
+
+
+# ---------------------------------------------------------------------------
+# Dashboard counters / roster
+# ---------------------------------------------------------------------------
+
+def test_count_cards_and_unassigned(conn):
+    assert count_cards(conn) == 0
+    assert count_unassigned_cards(conn) == 0
+
+    uid = create_user(conn, "Cara", "cara@example.com", "h")
+    c1 = create_card(conn, "AA:01")
+    c2 = create_card(conn, "AA:02")
+    create_card(conn, "AA:03")
+    assign_card(conn, c1, uid)
+
+    assert count_cards(conn) == 3
+    assert count_unassigned_cards(conn) == 2
+    # Sanity: the helper agrees with a full list_cards
+    assert count_cards(conn) == len(list_cards(conn))
+
+
+def test_count_action_today_and_taps_today(conn):
+    uid = create_user(conn, "Tom", "tom@example.com", "h")
+    cid = create_card(conn, "BB:01")
+    assign_card(conn, cid, uid)
+
+    insert_log(conn, cid, uid, "check_in")
+    insert_log(conn, cid, uid, "check_out")
+    insert_log(conn, cid, uid, "check_in")
+
+    assert count_action_today(conn, "check_in") == 2
+    assert count_action_today(conn, "check_out") == 1
+    assert count_taps_today(conn) == 3
+
+
+def test_count_action_today_ignores_old_rows(conn):
+    uid = create_user(conn, "Yara", "yara@example.com", "h")
+    cid = create_card(conn, "CC:01")
+    assign_card(conn, cid, uid)
+
+    # Backdated row should not count toward "today"
+    conn.execute(
+        "INSERT INTO time_logs (card_id, user_id, action, timestamp) "
+        "VALUES (?, ?, 'check_in', '2000-01-01 09:00:00')",
+        (cid, uid),
+    )
+    conn.commit()
+    insert_log(conn, cid, uid, "check_in")  # today
+
+    assert count_action_today(conn, "check_in") == 1
+    assert count_taps_today(conn) == 1
+
+
+def test_list_currently_checked_in_returns_only_in(conn):
+    a = create_user(conn, "Ada", "ada@example.com", "h")
+    b = create_user(conn, "Ben", "ben@example.com", "h")
+    c = create_user(conn, "Cy",  "cy@example.com",  "h")
+    ca = create_card(conn, "DD:01")
+    cb = create_card(conn, "DD:02")
+    cc = create_card(conn, "DD:03")
+    assign_card(conn, ca, a)
+    assign_card(conn, cb, b)
+    assign_card(conn, cc, c)
+
+    insert_log(conn, ca, a, "check_in")
+    insert_log(conn, cb, b, "check_in")
+    insert_log(conn, cb, b, "check_out")  # Ben left
+    insert_log(conn, cc, c, "check_in")
+
+    on_floor = list_currently_checked_in(conn)
+    names = {r["name"] for r in on_floor}
+    assert names == {"Ada", "Cy"}
+
+    for r in on_floor:
+        assert "since" in r and "elapsed" in r
+        assert r["elapsed"].endswith("m")
+
+
+def test_list_currently_checked_in_empty(conn):
+    assert list_currently_checked_in(conn) == []
 
 
 def test_delete_expired_sessions(conn):

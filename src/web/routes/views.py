@@ -30,7 +30,7 @@ def dashboard():
         "in_today":         db.count_action_today(conn, "check_in"),
         "out_today":        db.count_action_today(conn, "check_out"),
         "taps_today":       db.count_taps_today(conn),
-        "cards_total":      len(db.list_cards(conn)),
+        "cards_total":      db.count_cards(conn),
         "cards_unassigned": db.count_unassigned_cards(conn),
     }
     today = date.today()
