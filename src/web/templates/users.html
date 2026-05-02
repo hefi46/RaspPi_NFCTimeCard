@@ -31,7 +31,7 @@
           <td class="muted">{{ u.created_at }}</td>
           <td class="actions">
             <button class="btn btn-ghost btn-sm"
-              onclick="openEditModal({{ u.id }}, '{{ u.name }}', '{{ u.email }}', '{{ u.role }}')">Edit</button>
+              onclick='openEditModal({{ u.id }}, {{ u.name | tojson }}, {{ u.email | tojson }}, {{ u.role | tojson }})'>Edit</button>
             <button class="btn btn-danger btn-sm" onclick="deleteUser({{ u.id }})">Delete</button>
           </td>
         </tr>

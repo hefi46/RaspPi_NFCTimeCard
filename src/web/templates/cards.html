@@ -57,10 +57,14 @@
         <tr id="card-row-{{ card.id }}">
           <td><code>{{ card.uid }}</code></td>
           <td>{{ card.label or '—' }}</td>
-          <td>{{ card.user_name or '<span class="muted">Unassigned</span>' }}</td>
+          <td>
+            {% if card.user_name %}{{ card.user_name }}
+            {% else %}<span class="muted">Unassigned</span>{% endif %}
+          </td>
           <td class="muted">{{ card.assigned_at or '—' }}</td>
           <td class="actions">
-            <button class="btn btn-ghost btn-sm" onclick="editCard({{ card.id }}, '{{ card.label or '' }}', {{ card.user_id or 'null' }})">Edit</button>
+            <button class="btn btn-ghost btn-sm"
+              onclick='editCard({{ card.id }}, {{ (card.label or "") | tojson }}, {{ card.user_id | tojson }})'>Edit</button>
             <button class="btn btn-danger btn-sm" onclick="deleteCard({{ card.id }})">Delete</button>
           </td>
         </tr>

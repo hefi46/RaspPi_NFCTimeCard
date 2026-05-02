@@ -139,5 +139,6 @@ class MockNFCReader:
 
 def make_reader(config) -> NFCReader | MockNFCReader:
     if config.hardware.mock:
-        return MockNFCReader(config)
+        # Effectively disable auto-emit — taps come from the /dev simulator
+        return MockNFCReader(config, emit_interval=99_999.0)
     return NFCReader(config)

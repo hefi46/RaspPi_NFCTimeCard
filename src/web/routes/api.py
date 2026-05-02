@@ -5,7 +5,7 @@ import io
 import threading
 
 import bcrypt
-from flask import Blueprint, current_app, jsonify, request, Response
+from flask import Blueprint, current_app, g, jsonify, request, Response
 
 from src import database as db
 from src.web.auth import require_admin
@@ -70,6 +70,12 @@ def update_user(user_id):
     if "role" in data:
         if data["role"] not in ("admin", "user"):
             return jsonify({"error": "role must be 'admin' or 'user'"}), 400
+        # Block demoting the last remaining admin
+        target = db.get_user_by_id(_conn(), user_id)
+        if (target and target["role"] == "admin"
+                and data["role"] != "admin"
+                and db.count_admins(_conn()) <= 1):
+            return jsonify({"error": "Cannot demote the last admin"}), 409
         fields["role"] = data["role"]
     if data.get("password"):
         fields["password"] = bcrypt.hashpw(
@@ -83,6 +89,13 @@ def update_user(user_id):
 @api_bp.route("/users/<int:user_id>", methods=["DELETE"])
 @require_admin
 def delete_user(user_id):
+    if user_id == g.current_user["id"]:
+        return jsonify({"error": "You cannot delete your own account"}), 409
+
+    target = db.get_user_by_id(_conn(), user_id)
+    if target and target["role"] == "admin" and db.count_admins(_conn()) <= 1:
+        return jsonify({"error": "Cannot delete the last admin"}), 409
+
     db.delete_user(_conn(), user_id)
     return jsonify({"ok": True})
 

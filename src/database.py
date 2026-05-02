@@ -93,6 +93,12 @@ def list_users(conn: sqlite3.Connection) -> list[dict]:
     return _rows(conn.execute("SELECT * FROM users ORDER BY name").fetchall())
 
 
+def count_admins(conn: sqlite3.Connection) -> int:
+    return conn.execute(
+        "SELECT COUNT(*) FROM users WHERE role = 'admin'"
+    ).fetchone()[0]
+
+
 def update_user(conn: sqlite3.Connection, user_id: int, **fields) -> None:
     allowed = {"name", "email", "password", "role"}
     updates = {k: v for k, v in fields.items() if k in allowed}

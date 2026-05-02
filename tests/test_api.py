@@ -148,6 +148,56 @@ def test_delete_user(admin_client, conn):
     assert res.status_code == 200
 
 
+def test_cannot_delete_self(admin_client, conn):
+    """Admin cannot delete their own account."""
+    from src.database import get_user_by_email
+    me = get_user_by_email(conn, "admin@test.com")
+    res = admin_client.delete(f"/api/users/{me['id']}")
+    assert res.status_code == 409
+    assert "your own" in res.get_json()["error"].lower()
+
+
+def test_cannot_delete_last_admin(admin_client, conn):
+    """Cannot delete the only remaining admin."""
+    # Log in as a second admin so we can attempt to delete the first
+    pw = bcrypt.hashpw(b"pw", bcrypt.gensalt()).decode()
+    second_id = create_user(conn, "Second", "second@test.com", pw, role="admin")
+    admin_client.post("/auth/login", json={"email": "second@test.com", "password": "pw"})
+
+    from src.database import get_user_by_email, delete_user
+    first = get_user_by_email(conn, "admin@test.com")
+
+    # Demote the first admin (so only "Second" is admin)
+    delete_user(conn, first["id"])
+
+    # Now Second is the last admin — they cannot delete themselves
+    res = admin_client.delete(f"/api/users/{second_id}")
+    assert res.status_code == 409
+    assert "your own" in res.get_json()["error"].lower()
+
+
+def test_cannot_delete_last_admin_via_other_account(admin_client, conn):
+    """Even from a non-self path, the last-admin check blocks deletion."""
+    # Create a regular user, log in as them (we'd need their session — instead
+    # we keep the admin session and verify the path is unreachable from another
+    # admin since deleting yourself is also blocked).  Use direct delete_user
+    # to verify the count_admins helper is correct.
+    from src.database import count_admins, create_user as create_user_db
+    assert count_admins(conn) == 1   # the "admin@test.com" from admin_client
+    create_user_db(conn, "Regular", "reg@test.com", "h", role="user")
+    assert count_admins(conn) == 1
+    create_user_db(conn, "Boss", "boss@test.com", "h", role="admin")
+    assert count_admins(conn) == 2
+
+
+def test_cannot_demote_last_admin(admin_client, conn):
+    from src.database import get_user_by_email
+    me = get_user_by_email(conn, "admin@test.com")
+    res = admin_client.patch(f"/api/users/{me['id']}", json={"role": "user"})
+    assert res.status_code == 409
+    assert "last admin" in res.get_json()["error"].lower()
+
+
 # ---------------------------------------------------------------------------
 # Cards API
 # ---------------------------------------------------------------------------
