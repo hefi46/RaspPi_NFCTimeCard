@@ -1,0 +1,279 @@
+# Instincts generated from https://github.com/hefi46/RaspPi_NFCTimeCard
+# Generated: 2026-05-02T10:47:48.518Z
+# Version: 2.0
+# NOTE: This file supplements (does not replace) any existing curated instincts.
+# High-confidence manually curated instincts should be preserved alongside these.
+
+---
+id: RaspPi_NFCTimeCard-commit-conventional
+trigger: "when writing a commit message"
+confidence: 0.85
+domain: git
+source: repo-analysis
+source_repo: https://github.com/hefi46/RaspPi_NFCTimeCard
+---
+
+# RaspPi_NFCTimeCard Commit Conventional
+
+## Action
+
+Use conventional commit format with prefixes: refactor
+
+## Evidence
+
+- 1 commits analyzed
+- Detected conventional commit pattern
+- Examples: refactor: address code review findings on design changes
+
+---
+id: RaspPi_NFCTimeCard-commit-length
+trigger: "when writing a commit message"
+confidence: 0.6
+domain: git
+source: repo-analysis
+source_repo: https://github.com/hefi46/RaspPi_NFCTimeCard
+---
+
+# RaspPi_NFCTimeCard Commit Length
+
+## Action
+
+Write moderate-length commit messages (~56 characters)
+
+## Evidence
+
+- Average commit message length: 56 chars
+- Based on 1 commits
+
+---
+id: RaspPi_NFCTimeCard-naming-files
+trigger: "when creating a new file"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/hefi46/RaspPi_NFCTimeCard
+---
+
+# RaspPi_NFCTimeCard Naming Files
+
+## Action
+
+Use camelCase naming convention
+
+## Evidence
+
+- Analyzed file naming patterns in repository
+- Dominant pattern: camelCase
+
+---
+id: RaspPi_NFCTimeCard-import-relative
+trigger: "when importing modules"
+confidence: 0.75
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/hefi46/RaspPi_NFCTimeCard
+---
+
+# RaspPi_NFCTimeCard Import Relative
+
+## Action
+
+Use relative imports for project files
+
+## Evidence
+
+- Import analysis shows relative import pattern
+- Example: import { x } from '../lib/x'
+
+---
+id: RaspPi_NFCTimeCard-export-style
+trigger: "when exporting from a module"
+confidence: 0.7
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/hefi46/RaspPi_NFCTimeCard
+---
+
+# RaspPi_NFCTimeCard Export Style
+
+## Action
+
+Prefer named exports
+
+## Evidence
+
+- Export pattern analysis
+- Dominant style: named
+
+---
+id: RaspPi_NFCTimeCard-test-separate
+trigger: "when writing tests"
+confidence: 0.8
+domain: testing
+source: repo-analysis
+source_repo: https://github.com/hefi46/RaspPi_NFCTimeCard
+---
+
+# RaspPi_NFCTimeCard Test Separate
+
+## Action
+
+Place tests in the tests/ or __tests__/ directory, mirroring src structure
+
+## Evidence
+
+- Separate test directory pattern detected
+- Tests live in dedicated test folders
+
+---
+id: rasppi_nfctimecard-instinct-file-naming
+trigger: "When creating a new Python file"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: hefi46/RaspPi_NFCTimeCard
+---
+
+# Rasppi_nfctimecard Instinct File Naming
+
+## Action
+
+Name the file using camelCase
+
+## Evidence
+
+- Pattern in files: file naming convention is camelCase in src/
+
+---
+id: rasppi_nfctimecard-instinct-function-naming
+trigger: "When defining a new function"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: hefi46/RaspPi_NFCTimeCard
+---
+
+# Rasppi_nfctimecard Instinct Function Naming
+
+## Action
+
+Use camelCase for the function name
+
+## Evidence
+
+- Pattern in functions: function naming convention is camelCase
+
+---
+id: rasppi_nfctimecard-instinct-class-naming
+trigger: "When defining a new class"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: hefi46/RaspPi_NFCTimeCard
+---
+
+# Rasppi_nfctimecard Instinct Class Naming
+
+## Action
+
+Use PascalCase for the class name
+
+## Evidence
+
+- Pattern in classes: class naming convention is PascalCase
+
+---
+id: rasppi_nfctimecard-instinct-constant-naming
+trigger: "When defining a constant"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: hefi46/RaspPi_NFCTimeCard
+---
+
+# Rasppi_nfctimecard Instinct Constant Naming
+
+## Action
+
+Use SCREAMING_SNAKE_CASE for the constant name
+
+## Evidence
+
+- Pattern in constants: constant naming convention is SCREAMING_SNAKE_CASE
+
+---
+id: rasppi_nfctimecard-instinct-import-style
+trigger: "When importing modules within the project"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: hefi46/RaspPi_NFCTimeCard
+---
+
+# Rasppi_nfctimecard Instinct Import Style
+
+## Action
+
+Use relative imports
+
+## Evidence
+
+- Pattern in imports: relative import style used in src/
+
+---
+id: rasppi_nfctimecard-instinct-export-style
+trigger: "When exporting functions or classes"
+confidence: 0.7
+domain: code-style
+source: repo-analysis
+source_repo: hefi46/RaspPi_NFCTimeCard
+---
+
+# Rasppi_nfctimecard Instinct Export Style
+
+## Action
+
+Use named exports
+
+## Evidence
+
+- Pattern in exports: named export style observed
+
+---
+id: rasppi_nfctimecard-instinct-test-location
+trigger: "When adding new tests"
+confidence: 0.8
+domain: testing
+source: repo-analysis
+source_repo: hefi46/RaspPi_NFCTimeCard
+---
+
+# Rasppi_nfctimecard Instinct Test Location
+
+## Action
+
+Place test files in the separate 'tests' folder
+
+## Evidence
+
+- Pattern in folder structure: tests located in 'tests' folder
+
+---
+id: rasppi_nfctimecard-instinct-commit-format
+trigger: "When making a git commit"
+confidence: 0.9
+domain: git
+source: repo-analysis
+source_repo: hefi46/RaspPi_NFCTimeCard
+---
+
+# Rasppi_nfctimecard Instinct Commit Format
+
+## Action
+
+Use the 'refactor:' prefix for refactoring commits, following conventional commit format
+
+## Evidence
+
+- Seen in commit: 'refactor: address code review findings on design changes'
+
